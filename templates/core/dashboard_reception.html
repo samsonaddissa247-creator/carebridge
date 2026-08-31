@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Front desk</h1><p>Today's appointments and quick actions</p></div>
+  <div class="who"><div class="avatar">{{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}</div><div><div style="font-weight:600;">{{ user.get_full_name }}</div><div class="role">Receptionist</div></div></div>
+</div>
+
+<div class="stat-row">
+  <div class="stat"><div class="n">{{ patients_total }}</div><div class="l">Total patients</div></div>
+  <div class="stat {% if unpaid_invoices %}warn{% endif %}"><div class="n">{{ unpaid_invoices }}</div><div class="l">Unpaid invoices</div></div>
+</div>
+
+<div class="grid-2">
+  <div class="card tab" data-tab="TODAY">
+    <h3 class="section">Today's appointments</h3>
+    <table>
+      <tr><th>Time</th><th>Patient</th><th>Doctor</th><th>Status</th></tr>
+      {% for a in appointments_today %}
+      <tr><td class="mono">{{ a.scheduled_at|date:"H:i" }}</td><td>{{ a.patient.full_name }}</td><td>{{ a.doctor.get_full_name|default:"Unassigned" }}</td><td><span class="pill {{ a.status|lower }}">{{ a.get_status_display }}</span></td></tr>
+      {% empty %}
+      <tr><td colspan="4" style="color:var(--muted);">Nothing scheduled today.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div class="card tab" data-tab="QUICK ACTIONS">
+    <h3 class="section">Quick actions</h3>
+    <div class="actions" style="flex-direction:column;align-items:stretch;">
+      <a class="btn primary" href="{% url 'register_patient' %}">Register a patient</a>
+      <a class="btn ghost" href="{% url 'book_appointment' %}">Book appointment</a>
+      <a class="btn ghost" href="{% url 'create_invoice' %}">Create invoice</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

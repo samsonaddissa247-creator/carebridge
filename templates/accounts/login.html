@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sign in — CareBridge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="brand"><div class="mark"></div><span>CareBridge</span></div>
+    <h2>Sign in</h2>
+    <p class="sub">Enter your staff credentials to continue</p>
+
+    {% if messages %}
+      <ul class="messages">
+        {% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="field">
+        <label>{{ form.username.label }}</label>
+        {{ form.username }}
+        {{ form.username.errors }}
+      </div>
+      <div class="field">
+        <label>{{ form.password.label }}</label>
+        {{ form.password }}
+        {{ form.password.errors }}
+      </div>
+      <button class="btn primary" style="width:100%;padding:12px;" type="submit">Sign In</button>
+    </form>
+
+    <div class="badge-verify">
+      <span>&#128274;</span>
+      <span>Staff accounts are created and verified by your Hospital Administrator — there is no self-service staff signup.</span>
+    </div>
+    <p class="foot-note">New staff member? <a href="{% url 'request_account' %}" style="color:var(--primary);font-weight:600;">Request an account</a> for admin review.</p>
+  </div>
+</div>
+</body>
+</html>

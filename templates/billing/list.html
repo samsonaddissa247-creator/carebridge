@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Billing</h1><p>{{ invoices|length }} invoice{{ invoices|length|pluralize }}</p></div>
+  <a class="btn accent" href="{% url 'create_invoice' %}">+ New Invoice</a>
+</div>
+<div class="card tab" data-tab="INVOICES">
+  <table>
+    <tr><th>Patient</th><th>Description</th><th>Amount</th><th>Status</th><th></th></tr>
+    {% for i in invoices %}
+    <tr>
+      <td>{{ i.patient.full_name }}</td>
+      <td>{{ i.description }}</td>
+      <td class="mono">${{ i.amount }}</td>
+      <td><span class="pill {{ i.status|lower }}">{{ i.get_status_display }}</span></td>
+      <td>{% if i.status == "UNPAID" %}<a class="btn ghost small" href="{% url 'mark_paid' i.id %}">Mark Paid</a>{% endif %}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5" style="color:var(--muted);">No invoices yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

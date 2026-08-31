@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Request staff account — CareBridge</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-card" style="width:460px;">
+    <div class="brand"><div class="mark"></div><span>CareBridge</span></div>
+    <h2>Request a staff account</h2>
+    <p class="sub">Your request will be reviewed and approved by your Hospital Administrator before you can log in.</p>
+    {% if messages %}
+      <ul class="messages">{% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="field"><label>First name</label>{{ form.first_name }}</div>
+        <div class="field"><label>Last name</label>{{ form.last_name }}</div>
+        <div class="field"><label>Username</label>{{ form.username }}{{ form.username.errors }}</div>
+        <div class="field"><label>Email</label>{{ form.email }}</div>
+        <div class="field"><label>Role</label>{{ form.role }}</div>
+        <div class="field"><label>Department</label>{{ form.department }}</div>
+        <div class="field full"><label>Staff ID / employee number</label>{{ form.staff_id }}{{ form.staff_id.errors }}</div>
+        <div class="field full"><label>Password</label>{{ form.password }}</div>
+      </div>
+      <button class="btn primary" style="width:100%;padding:12px;" type="submit">Submit Request</button>
+    </form>
+    <p class="foot-note"><a href="{% url 'login' %}" style="color:var(--primary);font-weight:600;">Back to sign in</a></p>
+  </div>
+</div>
+</body>
+</html>

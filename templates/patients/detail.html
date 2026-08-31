@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar"><div><h1>{{ patient.full_name }}</h1><p class="mono">{{ patient.patient_id }}</p></div></div>
+<div class="grid-2">
+  <div class="card tab" data-tab="PROFILE">
+    <h3 class="section">Personal details</h3>
+    <p><b>Sex:</b> {{ patient.get_sex_display }}</p>
+    <p><b>Date of birth:</b> {{ patient.date_of_birth }}</p>
+    <p><b>Phone:</b> {{ patient.phone_number|default:"—" }}</p>
+    <p><b>Next of kin:</b> {{ patient.next_of_kin|default:"—" }}</p>
+    <p><b>Registered:</b> {{ patient.registered_at|date:"d M Y, H:i" }} by {{ patient.registered_by|default:"—" }}</p>
+  </div>
+  <div class="card tab" data-tab="MEDICAL HISTORY">
+    <h3 class="section">Medical history</h3>
+    <p><b>Allergies:</b> {{ patient.allergies|default:"None recorded" }}</p>
+    <p><b>Chronic conditions:</b> {{ patient.chronic_conditions|default:"None recorded" }}</p>
+    <p><b>Notes:</b> {{ patient.notes|default:"—" }}</p>
+  </div>
+</div>
+<div class="card tab" data-tab="APPOINTMENTS">
+  <h3 class="section">Appointment history</h3>
+  <table>
+    <tr><th>When</th><th>Doctor</th><th>Reason</th><th>Status</th></tr>
+    {% for a in patient.appointments.all %}
+    <tr><td class="mono">{{ a.scheduled_at|date:"d M, H:i" }}</td><td>{{ a.doctor|default:"Unassigned" }}</td><td>{{ a.reason }}</td><td><span class="pill {{ a.status|lower }}">{{ a.get_status_display }}</span></td></tr>
+    {% empty %}
+    <tr><td colspan="4" style="color:var(--muted);">No appointments yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

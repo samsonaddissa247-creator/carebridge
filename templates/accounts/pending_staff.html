@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Staff account approvals</h1><p>Verify each request against employment records before approving.</p></div>
+</div>
+<div class="card tab" data-tab="PENDING REQUESTS">
+  {% if pending %}
+  <table>
+    <tr><th>Name</th><th>Role</th><th>Staff ID</th><th>Department</th><th>Email</th><th>Action</th></tr>
+    {% for s in pending %}
+    <tr>
+      <td>{{ s.get_full_name }}</td>
+      <td>{{ s.get_role_display }}</td>
+      <td class="mono">{{ s.staff_id|default:"—" }}</td>
+      <td>{{ s.department|default:"—" }}</td>
+      <td>{{ s.email }}</td>
+      <td class="actions">
+        <a class="btn primary small" href="{% url 'approve_staff' s.id %}">Approve</a>
+        <a class="btn ghost small" href="{% url 'reject_staff' s.id %}">Reject</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p style="color:var(--muted);">No pending staff requests right now.</p>
+  {% endif %}
+</div>
+{% endblock %}

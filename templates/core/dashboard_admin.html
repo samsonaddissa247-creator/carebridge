@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Good day, {{ user.first_name|default:user.username }}</h1><p>CareBridge Admin overview</p></div>
+  <div class="who"><div class="avatar">{{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}</div><div><div style="font-weight:600;">{{ user.get_full_name }}</div><div class="role">Hospital Admin</div></div></div>
+</div>
+
+<div class="stat-row">
+  <div class="stat"><div class="n">{{ patients_total }}</div><div class="l">Total patients</div></div>
+  <div class="stat"><div class="n">{{ appointments_today }}</div><div class="l">Appointments today</div></div>
+  <div class="stat {% if pending_staff_count %}warn{% endif %}"><div class="n">{{ pending_staff_count }}</div><div class="l">Staff pending approval</div></div>
+  <div class="stat {% if unpaid_invoices %}warn{% endif %}"><div class="n">{{ unpaid_invoices }}</div><div class="l">Unpaid invoices</div></div>
+</div>
+
+<div class="grid-2">
+  <div class="card tab" data-tab="RECENT PATIENTS">
+    <h3 class="section">Recently registered</h3>
+    <table>
+      <tr><th>Name</th><th>ID</th><th>Registered</th></tr>
+      {% for p in recent_patients %}
+      <tr><td>{{ p.full_name }}</td><td class="mono">{{ p.patient_id }}</td><td>{{ p.registered_at|date:"d M, H:i" }}</td></tr>
+      {% empty %}
+      <tr><td colspan="3" style="color:var(--muted);">No patients registered yet.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div class="card tab" data-tab="QUICK ACTIONS">
+    <h3 class="section">Quick actions</h3>
+    <div class="actions" style="flex-direction:column;align-items:stretch;">
+      <a class="btn primary" href="{% url 'pending_staff' %}">Review staff approvals</a>
+      <a class="btn ghost" href="{% url 'register_patient' %}">Register a patient</a>
+      <a class="btn ghost" href="{% url 'reports' %}">View reports</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

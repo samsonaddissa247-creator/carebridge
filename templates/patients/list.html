@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Patients</h1><p>{{ patients|length }} record{{ patients|length|pluralize }}</p></div>
+  <a class="btn accent" href="{% url 'register_patient' %}">+ Register Patient</a>
+</div>
+<div class="card tab" data-tab="ALL PATIENTS">
+  <form method="get" style="margin-bottom:14px;">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search by name or patient ID..." style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;width:280px;max-width:100%;">
+    <button class="btn ghost small" type="submit">Search</button>
+  </form>
+  <table>
+    <tr><th>Patient ID</th><th>Name</th><th>Sex</th><th>DOB</th><th>Phone</th><th></th></tr>
+    {% for p in patients %}
+    <tr>
+      <td class="mono">{{ p.patient_id }}</td>
+      <td>{{ p.full_name }}</td>
+      <td>{{ p.get_sex_display }}</td>
+      <td>{{ p.date_of_birth }}</td>
+      <td>{{ p.phone_number|default:"—" }}</td>
+      <td><a class="btn ghost small" href="{% url 'patient_detail' p.id %}">View</a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" style="color:var(--muted);">No patients found.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

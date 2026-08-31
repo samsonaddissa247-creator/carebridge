@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{% block title %}CareBridge{% endblock %}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="mark"></div><span>CareBridge</span></div>
+    {% if user.role == "ADMIN" %}
+      <a class="nav-item {% if request.path == '/dashboard/' %}on{% endif %}" href="{% url 'dashboard' %}"><span class="dot"></span>Dashboard</a>
+      <a class="nav-item {% if '/patients' in request.path %}on{% endif %}" href="{% url 'patient_list' %}"><span class="dot"></span>Patients</a>
+      <a class="nav-item {% if '/appointments' in request.path %}on{% endif %}" href="{% url 'appointment_list' %}"><span class="dot"></span>Appointments</a>
+      <a class="nav-item {% if '/billing' in request.path %}on{% endif %}" href="{% url 'invoice_list' %}"><span class="dot"></span>Billing</a>
+      <a class="nav-item {% if '/staff/pending' in request.path %}on{% endif %}" href="{% url 'pending_staff' %}"><span class="dot"></span>Staff Approvals</a>
+      <a class="nav-item {% if request.path == '/reports/' %}on{% endif %}" href="{% url 'reports' %}"><span class="dot"></span>Reports</a>
+    {% elif user.role == "DOCTOR" %}
+      <a class="nav-item {% if request.path == '/dashboard/' %}on{% endif %}" href="{% url 'dashboard' %}"><span class="dot"></span>My Queue</a>
+      <a class="nav-item {% if '/appointments' in request.path %}on{% endif %}" href="{% url 'appointment_list' %}"><span class="dot"></span>My Appointments</a>
+      <a class="nav-item {% if '/patients' in request.path %}on{% endif %}" href="{% url 'patient_list' %}"><span class="dot"></span>Patients</a>
+    {% else %}
+      <a class="nav-item {% if request.path == '/dashboard/' %}on{% endif %}" href="{% url 'dashboard' %}"><span class="dot"></span>Dashboard</a>
+      <a class="nav-item {% if '/patients' in request.path %}on{% endif %}" href="{% url 'patient_list' %}"><span class="dot"></span>Patients</a>
+      <a class="nav-item {% if '/appointments' in request.path %}on{% endif %}" href="{% url 'appointment_list' %}"><span class="dot"></span>Appointments</a>
+      <a class="nav-item {% if '/billing' in request.path %}on{% endif %}" href="{% url 'invoice_list' %}"><span class="dot"></span>Billing</a>
+    {% endif %}
+    <div class="sidebar-foot">
+      Signed in as<br><b style="color:#fff;">{{ user.get_full_name|default:user.username }}</b><br>{{ user.get_role_display }}
+      <a href="{% url 'logout' %}">Log out</a>
+    </div>
+  </aside>
+  <main class="main">
+    {% if messages %}
+      <ul class="messages">
+        {% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+</body>
+</html>

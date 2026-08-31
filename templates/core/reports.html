@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar"><div><h1>Reports</h1><p>Simple operational summary</p></div></div>
+<div class="stat-row">
+  <div class="stat"><div class="n">{{ patients_total }}</div><div class="l">Total patients</div></div>
+  <div class="stat"><div class="n">{{ patients_this_week }}</div><div class="l">Registered this week</div></div>
+  <div class="stat"><div class="n">{{ appointments_total }}</div><div class="l">Total appointments</div></div>
+  <div class="stat"><div class="n">{{ appointments_completed }}</div><div class="l">Completed appointments</div></div>
+  <div class="stat"><div class="n">${{ revenue_total }}</div><div class="l">Revenue collected</div></div>
+  <div class="stat warn"><div class="n">${{ revenue_pending }}</div><div class="l">Revenue pending</div></div>
+</div>
+{% endblock %}

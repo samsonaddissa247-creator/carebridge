@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Appointments</h1><p>{{ appointments|length }} appointment{{ appointments|length|pluralize }}</p></div>
+  <a class="btn accent" href="{% url 'book_appointment' %}">+ New Appointment</a>
+</div>
+<div class="card tab" data-tab="ALL">
+  <table>
+    <tr><th>When</th><th>Patient</th><th>Doctor</th><th>Reason</th><th>Status</th><th></th></tr>
+    {% for a in appointments %}
+    <tr>
+      <td class="mono">{{ a.scheduled_at|date:"d M, H:i" }}</td>
+      <td><a href="{% url 'patient_detail' a.patient.id %}">{{ a.patient.full_name }}</a></td>
+      <td>{{ a.doctor|default:"Unassigned" }}</td>
+      <td>{{ a.reason }}</td>
+      <td><span class="pill {{ a.status|lower }}">{{ a.get_status_display }}</span></td>
+      <td class="actions">
+        {% if a.status == "PENDING" %}
+        <a class="btn ghost small" href="{% url 'update_appointment_status' a.id 'CONFIRMED' %}">Confirm</a>
+        {% elif a.status == "CONFIRMED" %}
+        <a class="btn ghost small" href="{% url 'update_appointment_status' a.id 'COMPLETED' %}">Complete</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" style="color:var(--muted);">No appointments yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
