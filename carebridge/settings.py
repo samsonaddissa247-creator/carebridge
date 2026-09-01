@@ -1,3 +1,5 @@
+import os
+import shutil
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -50,10 +52,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "carebridge.wsgi.application"
 
+DATABASE_PATH = BASE_DIR / "db.sqlite3"
+if os.environ.get("VERCEL"):
+    DATABASE_PATH = Path("/tmp/carebridge.sqlite3")
+    if not DATABASE_PATH.exists():
+        shutil.copy2(BASE_DIR / "db.sqlite3", DATABASE_PATH)
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": DATABASE_PATH,
     }
 }
 
