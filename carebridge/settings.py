@@ -53,21 +53,27 @@ TEMPLATES = [
 WSGI_APPLICATION = "carebridge.wsgi.application"
 
 DATABASE_PATH = BASE_DIR / "db.sqlite3"
-if os.environ.get("VERCEL"):
-    DATABASE_PATH = Path("/tmp/carebridge.sqlite3")
-    if not DATABASE_PATH.exists():
-        shutil.copy2(BASE_DIR / "db.sqlite3", DATABASE_PATH)
-    SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
-    CSRF_COOKIE_NAME = "carebridge_csrftoken"
-    CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_SECURE = True
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": DATABASE_PATH,
     }
 }
+
+if os.environ.get("DATABASE_URL"):
+    import dj_database_url
+
+    DATABASES["default"] = dj_database_url.config(conn_max_age=600)
+elif os.environ.get("VERCEL"):
+    DATABASE_PATH = Path("/tmp/carebridge.sqlite3")
+    if not DATABASE_PATH.exists():
+        shutil.copy2(BASE_DIR / "db.sqlite3", DATABASE_PATH)
+
+if os.environ.get("VERCEL"):
+    SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+    CSRF_COOKIE_NAME = "carebridge_csrftoken"
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
 
 AUTH_USER_MODEL = "accounts.User"
 

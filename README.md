@@ -25,6 +25,19 @@ python manage.py runserver
 
 Visit http://127.0.0.1:8000/
 
+## Vercel deployment
+
+Set a PostgreSQL connection string as the Vercel `DATABASE_URL` environment
+variable. Run the migrations against that database before the first deployment:
+
+```bash
+DATABASE_URL="postgresql://..." python manage.py migrate
+```
+
+The deployed app falls back to the bundled SQLite database when `DATABASE_URL`
+is not configured, but Vercel storage is temporary and account requests or
+approvals will not persist reliably in that mode.
+
 ## Demo accounts (created by seed.py)
 
 | Role          | Username    | Password    |
