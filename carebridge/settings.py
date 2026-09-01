@@ -57,6 +57,7 @@ if os.environ.get("VERCEL"):
     DATABASE_PATH = Path("/tmp/carebridge.sqlite3")
     if not DATABASE_PATH.exists():
         shutil.copy2(BASE_DIR / "db.sqlite3", DATABASE_PATH)
+    SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 
 DATABASES = {
     "default": {
