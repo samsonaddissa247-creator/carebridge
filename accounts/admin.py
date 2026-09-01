@@ -8,7 +8,7 @@ class CareBridgeUserAdmin(UserAdmin):
     list_display = ("username", "first_name", "last_name", "role", "staff_id", "is_approved", "is_active")
     list_filter = ("role", "is_approved", "is_active")
     fieldsets = UserAdmin.fieldsets + (
-        ("CareBridge role & verification", {
+        ("CareLink role & verification", {
             "fields": ("role", "staff_id", "department", "is_approved")
         }),
     )

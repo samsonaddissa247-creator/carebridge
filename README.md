@@ -1,4 +1,4 @@
-# CareBridge — Hospital Management System (School Project)
+# CareLink — Hospital Management System (School Project)
 
 A single-facility hospital management system built with Python (Django) and SQLite,
 replacing paper-based patient records with a simple, role-based digital system.
@@ -43,7 +43,7 @@ Try logging in as `drpending` to see the approval-gate in action — then log in
 - `appointments/` — booking and status tracking
 - `billing/` — simple invoicing
 - `core/` — role-based dashboards and reports
-- `templates/`, `static/` — CareBridge UI (teal/ochre theme)
+- `templates/`, `static/` — CareLink UI (teal/ochre theme)
 
 ## Notes for extending
 This is scoped as an MVP for a school project. Documented "future scope" ideas

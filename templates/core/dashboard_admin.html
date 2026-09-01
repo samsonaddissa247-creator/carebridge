@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="topbar">
-  <div><h1>Good day, {{ user.first_name|default:user.username }}</h1><p>CareBridge Admin overview</p></div>
+  <div><h1>Good day, {{ user.first_name|default:user.username }}</h1><p>CareLink Admin overview</p></div>
   <div class="who"><div class="avatar">{{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}</div><div><div style="font-weight:600;">{{ user.get_full_name }}</div><div class="role">Hospital Admin</div></div></div>
 </div>
 

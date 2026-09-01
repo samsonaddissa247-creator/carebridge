@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>{% block title %}CareBridge{% endblock %}</title>
+<title>{% block title %}CareLink{% endblock %}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,7 +13,7 @@
 <body>
 <div class="app">
   <aside class="sidebar">
-    <div class="brand"><div class="mark"></div><span>CareBridge</span></div>
+    <div class="brand"><div class="mark"></div><span>CareLink</span></div>
     {% if user.role == "ADMIN" %}
       <a class="nav-item {% if request.path == '/dashboard/' %}on{% endif %}" href="{% url 'dashboard' %}"><span class="dot"></span>Dashboard</a>
       <a class="nav-item {% if '/patients' in request.path %}on{% endif %}" href="{% url 'patient_list' %}"><span class="dot"></span>Patients</a>
