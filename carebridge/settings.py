@@ -53,6 +53,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "carebridge.wsgi.application"
 
 DATABASE_PATH = BASE_DIR / "db.sqlite3"
+IS_VERCEL = bool(os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV") or BASE_DIR == Path("/var/task"))
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -64,12 +65,13 @@ if os.environ.get("DATABASE_URL"):
     import dj_database_url
 
     DATABASES["default"] = dj_database_url.config(conn_max_age=600)
-elif os.environ.get("VERCEL"):
+elif IS_VERCEL:
     DATABASE_PATH = Path("/tmp/carebridge.sqlite3")
     if not DATABASE_PATH.exists():
         shutil.copy2(BASE_DIR / "db.sqlite3", DATABASE_PATH)
+    DATABASES["default"]["NAME"] = DATABASE_PATH
 
-if os.environ.get("VERCEL"):
+if IS_VERCEL:
     SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
     CSRF_COOKIE_NAME = "carebridge_csrftoken"
     CSRF_COOKIE_SECURE = True
