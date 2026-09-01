@@ -58,6 +58,9 @@ if os.environ.get("VERCEL"):
     if not DATABASE_PATH.exists():
         shutil.copy2(BASE_DIR / "db.sqlite3", DATABASE_PATH)
     SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+    CSRF_COOKIE_NAME = "carebridge_csrftoken"
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
 
 DATABASES = {
     "default": {
