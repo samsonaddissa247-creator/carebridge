@@ -61,10 +61,16 @@ DATABASES = {
     }
 }
 
-if os.environ.get("DATABASE_URL"):
+DATABASE_URL = (
+    os.environ.get("DATABASE_URL")
+    or os.environ.get("POSTGRES_URL")
+    or os.environ.get("POSTGRES_PRISMA_URL")
+)
+
+if DATABASE_URL:
     import dj_database_url
 
-    DATABASES["default"] = dj_database_url.config(conn_max_age=600)
+    DATABASES["default"] = dj_database_url.parse(DATABASE_URL, conn_max_age=600)
 elif IS_VERCEL:
     DATABASE_PATH = Path("/tmp/carebridge.sqlite3")
     if not DATABASE_PATH.exists():

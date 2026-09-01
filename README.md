@@ -27,8 +27,9 @@ Visit http://127.0.0.1:8000/
 
 ## Vercel deployment
 
-Set a PostgreSQL connection string as the Vercel `DATABASE_URL` environment
-variable. Run the migrations against that database before the first deployment:
+Set a PostgreSQL connection string as the Vercel `DATABASE_URL`, `POSTGRES_URL`,
+or `POSTGRES_PRISMA_URL` environment variable. Run the migrations against that
+database before the first deployment:
 
 ```bash
 DATABASE_URL="postgresql://..." python manage.py migrate
