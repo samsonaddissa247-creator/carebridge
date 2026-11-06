@@ -2,7 +2,9 @@
 {% block content %}
 <div class="topbar">
   <div><h1>Appointments</h1><p>{{ appointments|length }} appointment{{ appointments|length|pluralize }}</p></div>
+  {% if user.role == "ADMIN" or user.role == "RECEPTIONIST" %}
   <a class="btn accent" href="{% url 'book_appointment' %}">+ New Appointment</a>
+  {% endif %}
 </div>
 <div class="card tab" data-tab="ALL">
   <table>
@@ -15,10 +17,37 @@
       <td>{{ a.reason }}</td>
       <td><span class="pill {{ a.status|lower }}">{{ a.get_status_display }}</span></td>
       <td class="actions">
-        {% if a.status == "PENDING" %}
-        <a class="btn ghost small" href="{% url 'update_appointment_status' a.id 'CONFIRMED' %}">Confirm</a>
-        {% elif a.status == "CONFIRMED" %}
-        <a class="btn ghost small" href="{% url 'update_appointment_status' a.id 'COMPLETED' %}">Complete</a>
+        {% if user.role == "ADMIN" or user.role == "RECEPTIONIST" %}
+          {% if a.status == "SCHEDULED" or a.status == "PENDING" %}
+          <form method="post" action="{% url 'update_appointment_status' a.id 'CONFIRMED' %}" style="display:inline;">
+            {% csrf_token %}
+            <button class="btn ghost small" type="submit">Confirm</button>
+          </form>
+          {% elif a.status == "CONFIRMED" %}
+          <form method="post" action="{% url 'update_appointment_status' a.id 'COMPLETED' %}" style="display:inline;">
+            {% csrf_token %}
+            <button class="btn ghost small" type="submit">Complete</button>
+          </form>
+          {% endif %}
+          {% if a.status != "CANCELLED" %}
+          <form method="post" action="{% url 'update_appointment_status' a.id 'CANCELLED' %}" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="cancel_reason" value="Patient requested cancellation." />
+            <button class="btn ghost small" type="submit">Cancel</button>
+          </form>
+          {% endif %}
+        {% elif user.role == "DOCTOR" and a.doctor_id == user.id %}
+          {% if a.status == "SCHEDULED" or a.status == "PENDING" %}
+          <form method="post" action="{% url 'update_appointment_status' a.id 'CONFIRMED' %}" style="display:inline;">
+            {% csrf_token %}
+            <button class="btn ghost small" type="submit">Confirm</button>
+          </form>
+          {% elif a.status == "CONFIRMED" %}
+          <form method="post" action="{% url 'update_appointment_status' a.id 'COMPLETED' %}" style="display:inline;">
+            {% csrf_token %}
+            <button class="btn ghost small" type="submit">Complete</button>
+          </form>
+          {% endif %}
         {% endif %}
       </td>
     </tr>

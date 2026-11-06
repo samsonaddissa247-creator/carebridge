@@ -28,4 +28,16 @@
     {% endfor %}
   </table>
 </div>
+
+<div class="actions" style="margin-top:18px;">
+  {% if user.role == "ADMIN" or user.role == "RECEPTIONIST" %}
+    <a class="btn ghost" href="{% url 'update_patient' patient.pk %}">Edit patient record</a>
+  {% endif %}
+  {% if user.role == "ADMIN" or user.role == "DOCTOR" %}
+    <a class="btn ghost" href="{% url 'medical_record_history' patient.pk %}">View full medical record</a>
+    <a class="btn ghost" href="{% url 'add_medical_history' patient.pk %}">Add medical history</a>
+    <a class="btn ghost" href="{% url 'add_consultation' patient.pk %}">Add consultation</a>
+    <a class="btn ghost" href="{% url 'add_vital_signs' patient.pk %}">Record vital signs</a>
+  {% endif %}
+</div>
 {% endblock %}

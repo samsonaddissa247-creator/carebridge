@@ -1,9 +1,23 @@
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
+from django.http import HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.http import require_POST
 from .forms import StaffLoginForm, StaffRegistrationRequestForm
 from .models import User
+
+
+def is_staff_member(user):
+    return user.is_authenticated and user.role in {User.Role.ADMIN, User.Role.DOCTOR, User.Role.RECEPTIONIST}
+
+
+def is_admin(user):
+    return user.is_authenticated and user.role == User.Role.ADMIN
+
+
+def is_front_desk_or_admin(user):
+    return user.is_authenticated and user.role in {User.Role.ADMIN, User.Role.RECEPTIONIST}
 
 
 def login_view(request):
@@ -13,8 +27,12 @@ def login_view(request):
     if request.method == "POST":
         if form.is_valid():
             user = form.get_user()
-            if user.role != User.Role.ADMIN and not user.is_approved:
+            if user.role not in {User.Role.ADMIN, User.Role.DOCTOR, User.Role.RECEPTIONIST}:
+                messages.error(request, "Your account is not authorised to access CareLink.")
+            elif user.role != User.Role.ADMIN and not user.is_approved:
                 messages.error(request, "Your account is still pending approval by a Hospital Administrator.")
+            elif not user.is_active:
+                messages.error(request, "This account is currently inactive. Please contact the Hospital Administrator.")
             else:
                 auth_login(request, user)
                 return redirect("dashboard")
@@ -43,21 +61,14 @@ def request_account(request):
     return render(request, "accounts/request_account.html", {"form": form})
 
 
-def is_admin(user):
-    return user.is_authenticated and user.role == User.Role.ADMIN
-
-
 @login_required
 @user_passes_test(is_admin)
-def pending_staff(request):
-    pending = User.objects.filter(is_approved=False, role__in=[User.Role.DOCTOR, User.Role.RECEPTIONIST])
-    return render(request, "accounts/pending_staff.html", {"pending": pending})
-
-
-@login_required
-@user_passes_test(is_admin)
+@require_POST
 def approve_staff(request, user_id):
     staff = get_object_or_404(User, id=user_id)
+    if staff.role not in {User.Role.DOCTOR, User.Role.RECEPTIONIST}:
+        messages.error(request, "Only staff applicant accounts can be approved.")
+        return redirect("pending_staff")
     staff.is_approved = True
     staff.is_active = True
     staff.save()
@@ -67,9 +78,20 @@ def approve_staff(request, user_id):
 
 @login_required
 @user_passes_test(is_admin)
+@require_POST
 def reject_staff(request, user_id):
     staff = get_object_or_404(User, id=user_id)
+    if staff.role not in {User.Role.DOCTOR, User.Role.RECEPTIONIST}:
+        messages.error(request, "Only pending staff accounts can be rejected.")
+        return redirect("pending_staff")
     name = staff.get_full_name()
     staff.delete()
     messages.info(request, f"Request from {name} was rejected and removed.")
     return redirect("pending_staff")
+
+
+@login_required
+@user_passes_test(is_admin)
+def pending_staff(request):
+    pending = User.objects.filter(is_approved=False, role__in=[User.Role.DOCTOR, User.Role.RECEPTIONIST])
+    return render(request, "accounts/pending_staff.html", {"pending": pending})

@@ -18,17 +18,20 @@
       <a class="nav-item {% if request.path == '/dashboard/' %}on{% endif %}" href="{% url 'dashboard' %}"><span class="dot"></span>Dashboard</a>
       <a class="nav-item {% if '/patients' in request.path %}on{% endif %}" href="{% url 'patient_list' %}"><span class="dot"></span>Patients</a>
       <a class="nav-item {% if '/appointments' in request.path %}on{% endif %}" href="{% url 'appointment_list' %}"><span class="dot"></span>Appointments</a>
+      <a class="nav-item {% if '/queue' in request.path %}on{% endif %}" href="{% url 'queue_dashboard' %}"><span class="dot"></span>Queue</a>
       <a class="nav-item {% if '/billing' in request.path %}on{% endif %}" href="{% url 'invoice_list' %}"><span class="dot"></span>Billing</a>
       <a class="nav-item {% if '/staff/pending' in request.path %}on{% endif %}" href="{% url 'pending_staff' %}"><span class="dot"></span>Staff Approvals</a>
       <a class="nav-item {% if request.path == '/reports/' %}on{% endif %}" href="{% url 'reports' %}"><span class="dot"></span>Reports</a>
     {% elif user.role == "DOCTOR" %}
       <a class="nav-item {% if request.path == '/dashboard/' %}on{% endif %}" href="{% url 'dashboard' %}"><span class="dot"></span>My Queue</a>
+      <a class="nav-item {% if '/queue' in request.path %}on{% endif %}" href="{% url 'queue_dashboard' %}"><span class="dot"></span>Queue</a>
       <a class="nav-item {% if '/appointments' in request.path %}on{% endif %}" href="{% url 'appointment_list' %}"><span class="dot"></span>My Appointments</a>
       <a class="nav-item {% if '/patients' in request.path %}on{% endif %}" href="{% url 'patient_list' %}"><span class="dot"></span>Patients</a>
     {% else %}
       <a class="nav-item {% if request.path == '/dashboard/' %}on{% endif %}" href="{% url 'dashboard' %}"><span class="dot"></span>Dashboard</a>
       <a class="nav-item {% if '/patients' in request.path %}on{% endif %}" href="{% url 'patient_list' %}"><span class="dot"></span>Patients</a>
       <a class="nav-item {% if '/appointments' in request.path %}on{% endif %}" href="{% url 'appointment_list' %}"><span class="dot"></span>Appointments</a>
+      <a class="nav-item {% if '/queue' in request.path %}on{% endif %}" href="{% url 'queue_dashboard' %}"><span class="dot"></span>Queue</a>
       <a class="nav-item {% if '/billing' in request.path %}on{% endif %}" href="{% url 'invoice_list' %}"><span class="dot"></span>Billing</a>
     {% endif %}
     <div class="sidebar-foot">

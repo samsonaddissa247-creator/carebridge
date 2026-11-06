@@ -28,11 +28,23 @@ urlpatterns = [
     path("patients/", patient_views.patient_list, name="patient_list"),
     path("patients/register/", patient_views.register_patient, name="register_patient"),
     path("patients/<int:pk>/", patient_views.patient_detail, name="patient_detail"),
+    path("patients/<int:pk>/edit/", patient_views.update_patient, name="update_patient"),
+    path("patients/<int:pk>/history/", patient_views.medical_record_history, name="medical_record_history"),
+    path("patients/<int:pk>/history/add/", patient_views.add_medical_history, name="add_medical_history"),
+    path("patients/<int:pk>/consultation/add/", patient_views.add_consultation, name="add_consultation"),
+    path("patients/<int:pk>/vitals/add/", patient_views.add_vital_signs, name="add_vital_signs"),
+    path("patients/<int:pk>/correct/", patient_views.correct_record, name="correct_record"),
 
     # Appointments
     path("appointments/", appt_views.appointment_list, name="appointment_list"),
     path("appointments/book/", appt_views.book_appointment, name="book_appointment"),
     path("appointments/<int:pk>/status/<str:new_status>/", appt_views.update_status, name="update_appointment_status"),
+
+    # Queue
+    path("queue/", appt_views.queue_dashboard, name="queue_dashboard"),
+    path("queue/add/", appt_views.add_to_queue, name="add_to_queue"),
+    path("queue/call-next/", appt_views.call_next_patient, name="call_next_patient"),
+    path("queue/<int:pk>/status/<str:new_status>/", appt_views.update_queue_status, name="update_queue_status"),
 
     # Billing
     path("billing/", bill_views.invoice_list, name="invoice_list"),

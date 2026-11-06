@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Medical record history</h1><p>{{ patient.full_name }} · {{ patient.patient_id }}</p></div>
+  <a class="btn ghost" href="{% url 'patient_detail' patient.pk %}">Back to patient</a>
+</div>
+
+<div class="card tab" data-tab="MEDICAL HISTORY">
+  <h3 class="section">Medical history</h3>
+  {% if history %}
+    {% for entry in history %}
+      <div class="record-box">
+        <p><b>Recorded by:</b> {{ entry.recorded_by.get_full_name|default:entry.recorded_by.username|default:"Unknown" }}</p>
+        <p><b>Previous conditions:</b> {{ entry.previous_conditions|default:"—" }}</p>
+        <p><b>Past illnesses:</b> {{ entry.past_illnesses|default:"—" }}</p>
+        <p><b>Previous operations:</b> {{ entry.previous_operations|default:"—" }}</p>
+        <p><b>Known allergies:</b> {{ entry.known_allergies|default:"—" }}</p>
+        <p><b>Family history:</b> {{ entry.family_history|default:"—" }}</p>
+        <p><b>Other information:</b> {{ entry.other_information|default:"—" }}</p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p style="color:var(--muted);">No recorded medical history yet.</p>
+  {% endif %}
+</div>
+
+<div class="card tab" data-tab="CONSULTATIONS">
+  <h3 class="section">Consultations</h3>
+  {% if consultations %}
+    {% for consultation in consultations %}
+      <div class="record-box">
+        <p><b>Doctor:</b> {{ consultation.doctor.get_full_name|default:"Unknown" }}</p>
+        <p><b>Date:</b> {{ consultation.consultation_datetime|date:"d M Y, H:i" }}</p>
+        <p><b>Complaint:</b> {{ consultation.presenting_complaint }}</p>
+        <p><b>Symptoms:</b> {{ consultation.symptoms|default:"—" }}</p>
+        <p><b>Observations:</b> {{ consultation.clinical_observations|default:"—" }}</p>
+        <p><b>Assessment:</b> {{ consultation.assessment|default:"—" }}</p>
+        <p><b>Consultation notes:</b> {{ consultation.notes|default:"—" }}</p>
+        <p><b>Follow-up:</b> {{ consultation.follow_up_instructions|default:"—" }}</p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p style="color:var(--muted);">No consultation records yet.</p>
+  {% endif %}
+</div>
+
+<div class="card tab" data-tab="VITAL SIGNS">
+  <h3 class="section">Vital signs</h3>
+  {% if vital_signs %}
+    {% for signs in vital_signs %}
+      <div class="record-box">
+        <p><b>Recorded:</b> {{ signs.recorded_at|date:"d M Y, H:i" }}</p>
+        <p><b>Blood pressure:</b> {{ signs.blood_pressure|default:"—" }}</p>
+        <p><b>Temperature:</b> {{ signs.temperature|default:"—" }} °C</p>
+        <p><b>Pulse:</b> {{ signs.pulse_rate|default:"—" }} bpm</p>
+        <p><b>Respiratory rate:</b> {{ signs.respiratory_rate|default:"—" }} bpm</p>
+        <p><b>Oxygen saturation:</b> {{ signs.oxygen_saturation|default:"—" }}%</p>
+        <p><b>Weight:</b> {{ signs.weight_kg|default:"—" }} kg</p>
+        <p><b>Notes:</b> {{ signs.notes|default:"—" }}</p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p style="color:var(--muted);">No vital signs recorded yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

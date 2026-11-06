@@ -15,8 +15,14 @@
       <td>{{ s.department|default:"—" }}</td>
       <td>{{ s.email }}</td>
       <td class="actions">
-        <a class="btn primary small" href="{% url 'approve_staff' s.id %}">Approve</a>
-        <a class="btn ghost small" href="{% url 'reject_staff' s.id %}">Reject</a>
+        <form method="post" action="{% url 'approve_staff' s.id %}" style="display:inline;">
+          {% csrf_token %}
+          <button class="btn primary small" type="submit">Approve</button>
+        </form>
+        <form method="post" action="{% url 'reject_staff' s.id %}" style="display:inline;">
+          {% csrf_token %}
+          <button class="btn ghost small" type="submit">Reject</button>
+        </form>
       </td>
     </tr>
     {% endfor %}

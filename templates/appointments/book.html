@@ -4,12 +4,12 @@
 <div class="card tab" data-tab="NEW APPOINTMENT" style="max-width:640px;">
   <form method="post">
     {% csrf_token %}
-    <div class="field"><label>Patient</label>{{ form.patient }}</div>
-    <div class="field"><label>Doctor</label>{{ form.doctor }}</div>
-    <div class="field"><label>Reason</label>{{ form.reason }}</div>
-    <div class="field"><label>Date &amp; time</label>{{ form.scheduled_at }}</div>
-    <div class="field"><label>Status</label>{{ form.status }}</div>
-    <div class="field"><label>Notes</label>{{ form.notes }}</div>
+    <div class="field"><label>Patient</label>{{ form.patient }}{{ form.patient.errors }}</div>
+    <div class="field"><label>Doctor</label>{{ form.doctor }}{{ form.doctor.errors }}</div>
+    <div class="field"><label>Reason</label>{{ form.reason }}{{ form.reason.errors }}</div>
+    <div class="field"><label>Date &amp; time</label>{{ form.scheduled_at }}{{ form.scheduled_at.errors }}</div>
+    <div class="field"><label>Notes</label>{{ form.notes }}{{ form.notes.errors }}</div>
+    <div class="field"><label>Cancellation reason</label>{{ form.cancel_reason }}{{ form.cancel_reason.errors }}</div>
     <div class="actions">
       <button class="btn primary" type="submit">Book Appointment</button>
       <a class="btn ghost" href="{% url 'appointment_list' %}">Cancel</a>

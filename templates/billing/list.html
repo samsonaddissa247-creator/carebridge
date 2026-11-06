@@ -13,7 +13,13 @@
       <td>{{ i.description }}</td>
       <td class="mono">${{ i.amount }}</td>
       <td><span class="pill {{ i.status|lower }}">{{ i.get_status_display }}</span></td>
-      <td>{% if i.status == "UNPAID" %}<a class="btn ghost small" href="{% url 'mark_paid' i.id %}">Mark Paid</a>{% endif %}</td>
+      <td>{% if i.status == "UNPAID" %}
+        <form method="post" action="{% url 'mark_paid' i.id %}" style="display:inline;">
+          {% csrf_token %}
+          <button class="btn ghost small" type="submit">Mark Paid</button>
+        </form>
+        {% endif %}
+      </td>
     </tr>
     {% empty %}
     <tr><td colspan="5" style="color:var(--muted);">No invoices yet.</td></tr>

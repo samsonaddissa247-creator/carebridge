@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Queue management</h1><p>Current patient flow and waiting list</p></div>
+  {% if user.role == "ADMIN" or user.role == "RECEPTIONIST" %}
+  <div class="actions">
+    <a class="btn primary" href="{% url 'add_to_queue' %}">+ Add to queue</a>
+    <form method="post" action="{% url 'call_next_patient' %}" style="display:inline;">
+      {% csrf_token %}
+      <button class="btn accent" type="submit">Call next patient</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="stat-row">
+  <div class="stat"><div class="n">{{ total_today }}</div><div class="l">Total today</div></div>
+  <div class="stat"><div class="n">{{ waiting_count }}</div><div class="l">Waiting</div></div>
+  <div class="stat"><div class="n">{{ in_progress_count }}</div><div class="l">In progress</div></div>
+  <div class="stat"><div class="n">{{ completed_count }}</div><div class="l">Completed</div></div>
+</div>
+
+<div class="card tab" data-tab="QUEUE">
+  <table>
+    <tr><th>Queue #</th><th>Patient</th><th>Doctor</th><th>Status</th><th>Source</th><th>Added</th><th>Actions</th></tr>
+    {% for entry in queue_entries %}
+    <tr>
+      <td class="mono">{{ entry.queue_number }}</td>
+      <td>{{ entry.patient.full_name }}</td>
+      <td>{{ entry.assigned_doctor.get_full_name|default:"Unassigned" }}</td>
+      <td><span class="pill {{ entry.status|lower }}">{{ entry.get_status_display }}</span></td>
+      <td>{{ entry.get_source_display }}</td>
+      <td>{{ entry.added_at|date:"H:i" }}</td>
+      <td class="actions">
+        {% if user.role == "ADMIN" or user.role == "RECEPTIONIST" %}
+          {% if entry.status != "CANCELLED" %}
+          <form method="post" action="{% url 'update_queue_status' entry.id 'CALLED' %}" style="display:inline;">
+            {% csrf_token %}
+            <button class="btn ghost small" type="submit">Call</button>
+          </form>
+          {% endif %}
+          {% if entry.status == "CALLED" %}
+          <form method="post" action="{% url 'update_queue_status' entry.id 'IN_PROGRESS' %}" style="display:inline;">
+            {% csrf_token %}
+            <button class="btn ghost small" type="submit">In progress</button>
+          </form>
+          {% endif %}
+          {% if entry.status == "IN_PROGRESS" %}
+          <form method="post" action="{% url 'update_queue_status' entry.id 'COMPLETED' %}" style="display:inline;">
+            {% csrf_token %}
+            <button class="btn ghost small" type="submit">Complete</button>
+          </form>
+          {% endif %}
+        {% endif %}
+
+        {% if user.role == "DOCTOR" and entry.assigned_doctor_id == user.id %}
+          {% if entry.status == "CALLED" %}
+          <form method="post" action="{% url 'update_queue_status' entry.id 'IN_PROGRESS' %}" style="display:inline;">
+            {% csrf_token %}
+            <button class="btn ghost small" type="submit">Start</button>
+          </form>
+          {% endif %}
+          {% if entry.status == "IN_PROGRESS" %}
+          <form method="post" action="{% url 'update_queue_status' entry.id 'COMPLETED' %}" style="display:inline;">
+            {% csrf_token %}
+            <button class="btn ghost small" type="submit">Complete</button>
+          </form>
+          {% endif %}
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" style="color:var(--muted);">No patients in the queue yet today.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

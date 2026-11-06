@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Add patient to queue</h1><p>Register a patient for current clinic attention</p></div>
+  <a class="btn ghost" href="{% url 'queue_dashboard' %}">Back to queue</a>
+</div>
+
+<div class="card tab" data-tab="QUEUE ENTRY">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="form-grid">
+      {% for field in form %}
+      <div class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+        {% for error in field.errors %}<div class="error">{{ error }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="actions" style="margin-top:1rem;">
+      <button class="btn primary" type="submit">Add to queue</button>
+      <a class="btn ghost" href="{% url 'queue_dashboard' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
