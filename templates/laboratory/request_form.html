@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Request laboratory test — CareLink{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Request a laboratory test</h1><p>Select an existing patient you are authorised to attend.</p></div>
+  <a class="btn ghost" href="{% url 'lab_dashboard' %}">Back to laboratory</a>
+</div>
+<div class="card tab" data-tab="NEW REQUEST">
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-grid">
+      {% for field in form %}
+      <div class="field {% if field.name == 'clinical_notes' %}full{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {{ field.errors }}
+      </div>
+      {% endfor %}
+    </div>
+    <p style="color:var(--muted);">Priority is selected by the requesting doctor. CareLink does not determine clinical urgency.</p>
+    <button class="btn primary" type="submit">Submit request</button>
+  </form>
+</div>
+{% endblock %}

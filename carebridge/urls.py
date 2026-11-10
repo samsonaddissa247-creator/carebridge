@@ -7,8 +7,11 @@ from core import views as core_views
 from patients import views as patient_views
 from appointments import views as appt_views
 from billing import views as bill_views
+from django.urls import include
 
 urlpatterns = [
+    path("laboratory/", include("laboratory.urls")),
+    path("assistant/", include("assistant.urls")),
     re_path(r"^static/(?P<path>.*)$", serve, {"document_root": settings.BASE_DIR / "static"}),
     path("django-admin/", admin.site.urls),
 

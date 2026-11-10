@@ -9,7 +9,12 @@ from .models import User
 
 
 def is_staff_member(user):
-    return user.is_authenticated and user.role in {User.Role.ADMIN, User.Role.DOCTOR, User.Role.RECEPTIONIST}
+    return user.is_authenticated and user.role in {
+        User.Role.ADMIN,
+        User.Role.DOCTOR,
+        User.Role.RECEPTIONIST,
+        User.Role.LAB_TECHNICIAN,
+    }
 
 
 def is_admin(user):
@@ -27,7 +32,12 @@ def login_view(request):
     if request.method == "POST":
         if form.is_valid():
             user = form.get_user()
-            if user.role not in {User.Role.ADMIN, User.Role.DOCTOR, User.Role.RECEPTIONIST}:
+            if user.role not in {
+                User.Role.ADMIN,
+                User.Role.DOCTOR,
+                User.Role.RECEPTIONIST,
+                User.Role.LAB_TECHNICIAN,
+            }:
                 messages.error(request, "Your account is not authorised to access CareLink.")
             elif user.role != User.Role.ADMIN and not user.is_approved:
                 messages.error(request, "Your account is still pending approval by a Hospital Administrator.")
@@ -66,7 +76,7 @@ def request_account(request):
 @require_POST
 def approve_staff(request, user_id):
     staff = get_object_or_404(User, id=user_id)
-    if staff.role not in {User.Role.DOCTOR, User.Role.RECEPTIONIST}:
+    if staff.role not in {User.Role.DOCTOR, User.Role.RECEPTIONIST, User.Role.LAB_TECHNICIAN}:
         messages.error(request, "Only staff applicant accounts can be approved.")
         return redirect("pending_staff")
     staff.is_approved = True
@@ -81,7 +91,7 @@ def approve_staff(request, user_id):
 @require_POST
 def reject_staff(request, user_id):
     staff = get_object_or_404(User, id=user_id)
-    if staff.role not in {User.Role.DOCTOR, User.Role.RECEPTIONIST}:
+    if staff.role not in {User.Role.DOCTOR, User.Role.RECEPTIONIST, User.Role.LAB_TECHNICIAN}:
         messages.error(request, "Only pending staff accounts can be rejected.")
         return redirect("pending_staff")
     name = staff.get_full_name()
@@ -93,5 +103,8 @@ def reject_staff(request, user_id):
 @login_required
 @user_passes_test(is_admin)
 def pending_staff(request):
-    pending = User.objects.filter(is_approved=False, role__in=[User.Role.DOCTOR, User.Role.RECEPTIONIST])
+    pending = User.objects.filter(
+        is_approved=False,
+        role__in=[User.Role.DOCTOR, User.Role.RECEPTIONIST, User.Role.LAB_TECHNICIAN],
+    )
     return render(request, "accounts/pending_staff.html", {"pending": pending})

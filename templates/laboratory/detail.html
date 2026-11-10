@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Laboratory request — CareLink{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div><h1>{{ lab_request.test_name }}</h1><p>{{ lab_request.patient.full_name }} · <span class="mono">{{ lab_request.patient.patient_id }}</span></p></div>
+  <a class="btn ghost" href="{% url 'lab_dashboard' %}">Back to laboratory</a>
+</div>
+
+<div class="grid-2">
+  <div class="card tab" data-tab="REQUEST DETAILS">
+    <h3 class="section">Request details</h3>
+    <p><b>Status:</b> <span class="pill {{ lab_request.status|lower }}">{{ lab_request.get_status_display }}</span></p>
+    <p><b>Priority:</b> {{ lab_request.get_priority_display }}</p>
+    <p><b>Requested by:</b> {{ lab_request.requested_by.get_full_name|default:lab_request.requested_by.username }}</p>
+    <p><b>Requested:</b> {{ lab_request.created_at|date:"d M Y, H:i" }}</p>
+    <p><b>Consultation:</b> {% if lab_request.consultation %}{{ lab_request.consultation.consultation_datetime|date:"d M Y, H:i" }}{% else %}Not linked{% endif %}</p>
+    <p><b>Clinical notes:</b> {{ lab_request.clinical_notes|default:"No clinical notes provided."|linebreaksbr }}</p>
+  </div>
+  <div class="card tab" data-tab="RESULT">
+    <h3 class="section">Laboratory result</h3>
+    {% if lab_request.result %}
+      <p><b>Result:</b><br>{{ lab_request.result.result_value|linebreaksbr }}</p>
+      <p><b>Units:</b> {{ lab_request.result.units|default:"—" }}</p>
+      <p><b>Reference range:</b> {{ lab_request.result.reference_range|default:"—" }}</p>
+      <p><b>Result notes:</b> {{ lab_request.result.result_notes|default:"—"|linebreaksbr }}</p>
+      <p><b>Entered by:</b> {{ lab_request.result.entered_by.get_full_name|default:lab_request.result.entered_by.username }} · {{ lab_request.result.entered_at|date:"d M Y, H:i" }}</p>
+      {% if lab_request.result.verified_at %}
+        <p><b>Verification:</b> Verified by {{ lab_request.result.verified_by.get_full_name|default:lab_request.result.verified_by.username }} · {{ lab_request.result.verified_at|date:"d M Y, H:i" }}</p>
+      {% else %}
+        <p><b>Verification:</b> Not verified</p>
+      {% endif %}
+    {% else %}
+      <p style="color:var(--muted);">No result has been entered yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% if can_manage %}
+  {% if allowed_transitions %}
+  <div class="card tab" data-tab="UPDATE STATUS">
+    <h3 class="section">Update progress</h3>
+    <div class="actions">
+      {% for status in allowed_transitions %}
+      <form method="post" action="{% url 'lab_update_status' lab_request.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="status" value="{{ status }}">
+        <button class="btn ghost" type="submit">Mark {{ status|lower }}</button>
+      </form>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if result_form %}
+  <div class="card tab" data-tab="ENTER RESULT">
+    <h3 class="section">{% if lab_request.result %}Correct result{% else %}Enter result{% endif %}</h3>
+    <form method="post" action="{% url 'lab_save_result' lab_request.pk %}">
+      {% csrf_token %}
+      <div class="form-grid">
+        {% for field in result_form %}
+        <div class="field {% if field.name == 'result_value' or field.name == 'result_notes' %}full{% endif %}">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {{ field.errors }}
+        </div>
+        {% endfor %}
+      </div>
+      <button class="btn primary" type="submit">Save result</button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if lab_request.status == "COMPLETED" and lab_request.result and not lab_request.result.verified_at %}
+  <div class="actions">
+    <form method="post" action="{% url 'lab_verify_result' lab_request.pk %}">
+      {% csrf_token %}
+      <button class="btn primary" type="submit">Verify result</button>
+    </form>
+  </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

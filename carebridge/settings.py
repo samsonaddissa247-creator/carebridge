@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     "accounts",
     "patients",
     "appointments",
+    "laboratory",
+    "assistant",
     "billing",
     "core",
 ]
@@ -135,3 +137,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "login"
+
+CARELINK_AI_MODEL = os.environ.get("CARELINK_AI_MODEL", "qwen2.5:3b")
+CARELINK_OLLAMA_URL = os.environ.get("CARELINK_OLLAMA_URL", "http://127.0.0.1:11434/api/chat")
+CARELINK_AI_TIMEOUT = int(os.environ.get("CARELINK_AI_TIMEOUT", "20"))

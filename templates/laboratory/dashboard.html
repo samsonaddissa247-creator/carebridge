@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Laboratory — CareLink{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Laboratory</h1><p>Manage laboratory requests and review test progress.</p></div>
+  {% if can_create %}<a class="btn primary" href="{% url 'lab_create_request' %}">Request a test</a>{% endif %}
+</div>
+
+<div class="stat-row">
+  <div class="stat"><div class="n">{{ status_counts.REQUESTED }}</div><div class="l">New requests</div></div>
+  <div class="stat"><div class="n">{{ status_counts.COLLECTED }}</div><div class="l">Collected</div></div>
+  <div class="stat"><div class="n">{{ status_counts.PROCESSING }}</div><div class="l">Processing</div></div>
+  <div class="stat"><div class="n">{{ status_counts.COMPLETED }}</div><div class="l">Completed</div></div>
+  <div class="stat"><div class="n">{{ status_counts.CANCELLED }}</div><div class="l">Cancelled</div></div>
+</div>
+
+<div class="card tab" data-tab="LABORATORY REQUESTS">
+  <h3 class="section">Requests</h3>
+  <table>
+    <tr><th>Test</th><th>Patient</th><th>Requested by</th><th>Priority</th><th>Status</th><th>Requested</th><th></th></tr>
+    {% for item in requests %}
+    <tr>
+      <td>{{ item.test_name }}</td>
+      <td>{{ item.patient.full_name }} <span class="mono">({{ item.patient.patient_id }})</span></td>
+      <td>{{ item.requested_by.get_full_name|default:item.requested_by.username }}</td>
+      <td>{{ item.get_priority_display }}</td>
+      <td><span class="pill {{ item.status|lower }}">{{ item.get_status_display }}</span></td>
+      <td class="mono">{{ item.created_at|date:"d M, H:i" }}</td>
+      <td><a class="btn ghost small" href="{% url 'lab_detail' item.pk %}">Open</a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" style="color:var(--muted);">No laboratory requests are available.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

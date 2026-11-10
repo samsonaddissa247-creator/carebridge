@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}AI Assistant — CareLink{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div><h1>CareLink AI Assistant</h1><p>Administrative guidance and role-scoped operational summaries.</p></div>
+  <button class="btn ghost" type="button" id="new-conversation">New conversation</button>
+</div>
+<div class="badge-verify" role="note">
+  <span aria-hidden="true">!</span>
+  <span>AI responses may contain errors. Verify operational figures and instructions. This assistant is not for diagnosis, treatment, or clinical decisions. Do not enter patient names or other identifying information.</span>
+</div>
+<section class="card assistant-card" aria-label="AI assistant conversation">
+  <div id="chat-messages" class="assistant-messages" aria-live="polite">
+    <div class="assistant-message assistant-response">
+      <b>CareLink Assistant</b>
+      <p>Hi. I can help with CareLink workflows and permitted operational summaries. What would you like to know?</p>
+    </div>
+  </div>
+  <div id="assistant-error" class="messages" role="alert" hidden></div>
+  <form id="assistant-form" class="assistant-form">
+    {% csrf_token %}
+    <label class="sr-only" for="assistant-input">Your message</label>
+    <textarea id="assistant-input" name="message" rows="2" maxlength="1200" placeholder="Ask about CareLink or today's operational summary…" required></textarea>
+    <button class="btn primary" id="assistant-send" type="submit">Send</button>
+  </form>
+  <p class="assistant-status" id="assistant-status" aria-live="polite"></p>
+</section>
+<style>
+  .assistant-card{padding:0;overflow:hidden}
+  .assistant-messages{height:min(58vh,560px);min-height:300px;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
+  .assistant-message{max-width:min(82%,720px);padding:12px 15px;border-radius:12px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+  .assistant-message p{margin:5px 0 0}
+  .assistant-response{background:var(--primary-tint);align-self:flex-start}
+  .assistant-user{background:#FBF2D5;align-self:flex-end}
+  .assistant-form{border-top:1px solid var(--border);padding:14px;display:flex;align-items:flex-end;gap:10px}
+  .assistant-form textarea{flex:1;resize:vertical;min-height:48px;max-height:160px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font:inherit}
+  .assistant-form textarea:focus{outline:2px solid var(--primary);outline-offset:1px}
+  .assistant-status{margin:0;padding:0 16px 10px;color:var(--muted);font-size:12px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  @media(max-width:600px){.assistant-message{max-width:96%}.assistant-form{align-items:stretch;flex-direction:column}.assistant-form .btn{align-self:flex-end}}
+</style>
+<script>
+(() => {
+  const form = document.getElementById("assistant-form");
+  const input = document.getElementById("assistant-input");
+  const send = document.getElementById("assistant-send");
+  const messages = document.getElementById("chat-messages");
+  const status = document.getElementById("assistant-status");
+  const error = document.getElementById("assistant-error");
+  const history = [];
+  const csrfToken = form.querySelector("[name=csrfmiddlewaretoken]").value;
+
+  function addMessage(role, content) {
+    const bubble = document.createElement("div");
+    bubble.className = `assistant-message ${role === "user" ? "assistant-user" : "assistant-response"}`;
+    const label = document.createElement("b");
+    label.textContent = role === "user" ? "You" : "CareLink Assistant";
+    const text = document.createElement("p");
+    text.textContent = content;
+    bubble.append(label, text);
+    messages.appendChild(bubble);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const message = input.value.trim();
+    if (!message || send.disabled) return;
+    error.hidden = true;
+    error.textContent = "";
+    addMessage("user", message);
+    input.value = "";
+    send.disabled = true;
+    status.textContent = "CareLink Assistant is responding…";
+    try {
+      const response = await fetch("{% url 'assistant_message' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": csrfToken},
+        body: JSON.stringify({message, history: history.slice(-8)})
+      });
+      let result;
+      try {
+        result = await response.json();
+      } catch {
+        throw new Error("The assistant returned an unexpected response. Please sign in again or retry.");
+      }
+      if (!response.ok) throw new Error(result.error || "The assistant could not respond.");
+      addMessage("assistant", result.reply);
+      history.push({role: "user", content: message}, {role: "assistant", content: result.reply});
+      if (history.length > 8) history.splice(0, history.length - 8);
+    } catch (requestError) {
+      error.textContent = requestError.message || "The assistant is unavailable. Please try again.";
+      error.className = "messages error";
+      error.hidden = false;
+    } finally {
+      status.textContent = "";
+      send.disabled = false;
+      input.focus();
+    }
+  });
+
+  document.getElementById("new-conversation").addEventListener("click", () => {
+    history.length = 0;
+    messages.replaceChildren();
+    addMessage("assistant", "A new conversation has started. I can help with CareLink workflows and permitted operational summaries.");
+    error.hidden = true;
+    input.value = "";
+    input.focus();
+  });
+})();
+</script>
+{% endblock %}

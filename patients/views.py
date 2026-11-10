@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from accounts.models import User
 from .forms import ConsultationRecordForm, MedicalHistoryForm, PatientForm, VitalSignsForm
@@ -18,7 +18,7 @@ def can_manage_patients(user):
 
 
 def can_view_medical_records(user):
-    return user.is_authenticated and user.role in {User.Role.ADMIN, User.Role.DOCTOR, User.Role.RECEPTIONIST}
+    return user.is_authenticated and user.role in {User.Role.ADMIN, User.Role.DOCTOR}
 
 
 def can_manage_medical_records(user):
@@ -96,9 +96,7 @@ def update_patient(request, pk):
 def add_medical_history(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
     if request.user.role == User.Role.DOCTOR:
-        if not patient.consultations.filter(doctor=request.user).exists():
-            messages.error(request, "You can only add medical history for patients you are authorised to attend.")
-            return redirect("patient_detail", pk=patient.pk)
+        pass
     form = MedicalHistoryForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         history = form.save(commit=False)
@@ -116,9 +114,8 @@ def add_medical_history(request, pk):
 @require_http_methods(["GET", "POST"])
 def add_consultation(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
-    if request.user.role == User.Role.DOCTOR and not patient.appointments.filter(doctor=request.user).exists():
-        messages.error(request, "You can only create consultation records for your authorised patients.")
-        return redirect("patient_detail", pk=patient.pk)
+    if request.user.role == User.Role.DOCTOR:
+        pass
     form = ConsultationRecordForm(request.POST or None, user=request.user)
     if request.method == "POST" and form.is_valid():
         consultation = form.save(commit=False)
@@ -136,9 +133,8 @@ def add_consultation(request, pk):
 @require_http_methods(["GET", "POST"])
 def add_vital_signs(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
-    if request.user.role == User.Role.DOCTOR and not patient.appointments.filter(doctor=request.user).exists():
-        messages.error(request, "You can only record vital signs for your authorised patients.")
-        return redirect("patient_detail", pk=patient.pk)
+    if request.user.role == User.Role.DOCTOR:
+        pass
     form = VitalSignsForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         vital_signs = form.save(commit=False)
@@ -152,11 +148,10 @@ def add_vital_signs(request, pk):
 
 
 @login_required
-@user_passes_test(can_view_medical_records)
 @require_GET
 def medical_record_history(request, pk):
     patient = get_object_or_404(Patient, pk=pk)
-    if request.user.role == User.Role.RECEPTIONIST and request.user != patient.registered_by:
+    if request.user.role == User.Role.RECEPTIONIST:
         messages.error(request, "This record is restricted to authorised clinical staff.")
         return redirect("patient_list")
     history = MedicalHistory.objects.filter(patient=patient).select_related("recorded_by").order_by("-updated_at")

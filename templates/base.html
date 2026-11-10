@@ -19,6 +19,8 @@
       <a class="nav-item {% if '/patients' in request.path %}on{% endif %}" href="{% url 'patient_list' %}"><span class="dot"></span>Patients</a>
       <a class="nav-item {% if '/appointments' in request.path %}on{% endif %}" href="{% url 'appointment_list' %}"><span class="dot"></span>Appointments</a>
       <a class="nav-item {% if '/queue' in request.path %}on{% endif %}" href="{% url 'queue_dashboard' %}"><span class="dot"></span>Queue</a>
+      <a class="nav-item {% if '/laboratory' in request.path %}on{% endif %}" href="{% url 'lab_dashboard' %}"><span class="dot"></span>Laboratory</a>
+      <a class="nav-item {% if '/assistant' in request.path %}on{% endif %}" href="{% url 'assistant_chat' %}"><span class="dot"></span>AI Assistant</a>
       <a class="nav-item {% if '/billing' in request.path %}on{% endif %}" href="{% url 'invoice_list' %}"><span class="dot"></span>Billing</a>
       <a class="nav-item {% if '/staff/pending' in request.path %}on{% endif %}" href="{% url 'pending_staff' %}"><span class="dot"></span>Staff Approvals</a>
       <a class="nav-item {% if request.path == '/reports/' %}on{% endif %}" href="{% url 'reports' %}"><span class="dot"></span>Reports</a>
@@ -27,12 +29,18 @@
       <a class="nav-item {% if '/queue' in request.path %}on{% endif %}" href="{% url 'queue_dashboard' %}"><span class="dot"></span>Queue</a>
       <a class="nav-item {% if '/appointments' in request.path %}on{% endif %}" href="{% url 'appointment_list' %}"><span class="dot"></span>My Appointments</a>
       <a class="nav-item {% if '/patients' in request.path %}on{% endif %}" href="{% url 'patient_list' %}"><span class="dot"></span>Patients</a>
+      <a class="nav-item {% if '/laboratory' in request.path %}on{% endif %}" href="{% url 'lab_dashboard' %}"><span class="dot"></span>Laboratory</a>
+      <a class="nav-item {% if '/assistant' in request.path %}on{% endif %}" href="{% url 'assistant_chat' %}"><span class="dot"></span>AI Assistant</a>
+    {% elif user.role == "LAB_TECHNICIAN" %}
+      <a class="nav-item {% if '/laboratory' in request.path %}on{% endif %}" href="{% url 'lab_dashboard' %}"><span class="dot"></span>Laboratory</a>
+      <a class="nav-item {% if '/assistant' in request.path %}on{% endif %}" href="{% url 'assistant_chat' %}"><span class="dot"></span>AI Assistant</a>
     {% else %}
       <a class="nav-item {% if request.path == '/dashboard/' %}on{% endif %}" href="{% url 'dashboard' %}"><span class="dot"></span>Dashboard</a>
       <a class="nav-item {% if '/patients' in request.path %}on{% endif %}" href="{% url 'patient_list' %}"><span class="dot"></span>Patients</a>
       <a class="nav-item {% if '/appointments' in request.path %}on{% endif %}" href="{% url 'appointment_list' %}"><span class="dot"></span>Appointments</a>
       <a class="nav-item {% if '/queue' in request.path %}on{% endif %}" href="{% url 'queue_dashboard' %}"><span class="dot"></span>Queue</a>
       <a class="nav-item {% if '/billing' in request.path %}on{% endif %}" href="{% url 'invoice_list' %}"><span class="dot"></span>Billing</a>
+      <a class="nav-item {% if '/assistant' in request.path %}on{% endif %}" href="{% url 'assistant_chat' %}"><span class="dot"></span>AI Assistant</a>
     {% endif %}
     <div class="sidebar-foot">
       Signed in as<br><b style="color:#fff;">{{ user.get_full_name|default:user.username }}</b><br>{{ user.get_role_display }}

@@ -7,6 +7,7 @@ class User(AbstractUser):
         ADMIN = "ADMIN", "Hospital Administrator"
         DOCTOR = "DOCTOR", "Doctor"
         RECEPTIONIST = "RECEPTIONIST", "Receptionist"
+        LAB_TECHNICIAN = "LAB_TECHNICIAN", "Laboratory Technician"
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.RECEPTIONIST)
     staff_id = models.CharField(max_length=20, unique=True, null=True, blank=True)

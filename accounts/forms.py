@@ -18,7 +18,7 @@ class StaffRegistrationRequestForm(forms.ModelForm):
         model = User
         fields = ["first_name", "last_name", "username", "email", "role", "department", "staff_id", "password"]
         widgets = {
-            "role": forms.Select(choices=[(r.value, r.label) for r in User.Role if r.value != "ADMIN"]),
+            "role": forms.Select(choices=[(r.value, r.label) for r in User.Role if r != User.Role.ADMIN]),
         }
 
     def save(self, commit=True):
