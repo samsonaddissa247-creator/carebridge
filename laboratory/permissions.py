@@ -1,24 +1,5 @@
-from django.db.models import Q
-
 from accounts.models import User
-from appointments.models import Appointment, QueueEntry
-from patients.models import ConsultationRecord, Patient
-
-
-def doctor_patient_queryset(user):
-    return Patient.objects.filter(
-        Q(consultations__doctor=user)
-        | Q(appointments__doctor=user)
-        | Q(queue_entries__assigned_doctor=user)
-    ).distinct()
-
-
-def doctor_can_access_patient(user, patient):
-    return (
-        ConsultationRecord.objects.filter(patient=patient, doctor=user).exists()
-        or Appointment.objects.filter(patient=patient, doctor=user).exists()
-        or QueueEntry.objects.filter(patient=patient, assigned_doctor=user).exists()
-    )
+from patients.permissions import doctor_can_access_patient, doctor_patient_queryset
 
 
 def can_view_laboratory(user):

@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
@@ -7,6 +8,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from accounts.models import User
 from .forms import ConsultationRecordForm, MedicalHistoryForm, PatientForm, VitalSignsForm
 from .models import ConsultationRecord, MedicalHistory, MedicalRecordAuditLog, Patient, VitalSigns
+from .permissions import doctor_patient_queryset
 
 
 def can_view_patients(user):
@@ -29,11 +31,20 @@ def log_medical_record_action(patient, actor, action, details=""):
     MedicalRecordAuditLog.objects.create(patient=patient, actor=actor, action=action, details=details)
 
 
+def get_accessible_patient(user, pk):
+    patients = Patient.objects.all()
+    if user.role == User.Role.DOCTOR:
+        patients = doctor_patient_queryset(user)
+    elif user.role == User.Role.RECEPTIONIST:
+        patients = patients.filter(registered_by=user)
+    return get_object_or_404(patients, pk=pk)
+
+
 @login_required
 @user_passes_test(can_manage_patients)
 @require_http_methods(["GET", "POST"])
 def register_patient(request):
-    form = PatientForm(request.POST or None)
+    form = PatientForm(request.POST or None, user=request.user)
     if request.method == "POST" and form.is_valid():
         patient = form.save(commit=False)
         patient.registered_by = request.user
@@ -49,6 +60,8 @@ def register_patient(request):
 def patient_list(request):
     query = request.GET.get("q", "")
     patients = Patient.objects.all()
+    if request.user.role == User.Role.DOCTOR:
+        patients = doctor_patient_queryset(request.user)
     if query:
         patients = patients.filter(full_name__icontains=query) | patients.filter(patient_id__icontains=query)
     return render(request, "patients/list.html", {"patients": patients, "query": query})
@@ -58,13 +71,11 @@ def patient_list(request):
 @user_passes_test(can_view_patients)
 @require_http_methods(["GET"])
 def patient_detail(request, pk):
-    patient = get_object_or_404(Patient, pk=pk)
-    if request.user.role == User.Role.RECEPTIONIST and request.user != patient.registered_by:
-        messages.error(request, "You do not have permission to view this patient record.")
-        return redirect("patient_list")
-    medical_history = patient.medical_histories.order_by("-updated_at").first()
-    consultations = patient.consultations.select_related("doctor").all()
-    vital_signs = patient.vital_signs.select_related("recorded_by").all()
+    patient = get_accessible_patient(request.user, pk)
+    show_clinical_data = request.user.role != User.Role.RECEPTIONIST
+    medical_history = patient.medical_histories.order_by("-updated_at").first() if show_clinical_data else None
+    consultations = patient.consultations.select_related("doctor").all() if show_clinical_data else []
+    vital_signs = patient.vital_signs.select_related("recorded_by").all() if show_clinical_data else []
     return render(
         request,
         "patients/detail.html",
@@ -73,6 +84,7 @@ def patient_detail(request, pk):
             "medical_history": medical_history,
             "consultations": consultations,
             "vital_signs": vital_signs,
+            "show_clinical_data": show_clinical_data,
         },
     )
 
@@ -81,8 +93,8 @@ def patient_detail(request, pk):
 @user_passes_test(can_manage_patients)
 @require_http_methods(["GET", "POST"])
 def update_patient(request, pk):
-    patient = get_object_or_404(Patient, pk=pk)
-    form = PatientForm(request.POST or None, instance=patient)
+    patient = get_accessible_patient(request.user, pk)
+    form = PatientForm(request.POST or None, instance=patient, user=request.user)
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request, f"Patient record updated for {patient.full_name}.")
@@ -94,9 +106,7 @@ def update_patient(request, pk):
 @user_passes_test(can_manage_medical_records)
 @require_http_methods(["GET", "POST"])
 def add_medical_history(request, pk):
-    patient = get_object_or_404(Patient, pk=pk)
-    if request.user.role == User.Role.DOCTOR:
-        pass
+    patient = get_accessible_patient(request.user, pk)
     form = MedicalHistoryForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         history = form.save(commit=False)
@@ -113,9 +123,7 @@ def add_medical_history(request, pk):
 @user_passes_test(can_manage_medical_records)
 @require_http_methods(["GET", "POST"])
 def add_consultation(request, pk):
-    patient = get_object_or_404(Patient, pk=pk)
-    if request.user.role == User.Role.DOCTOR:
-        pass
+    patient = get_accessible_patient(request.user, pk)
     form = ConsultationRecordForm(request.POST or None, user=request.user)
     if request.method == "POST" and form.is_valid():
         consultation = form.save(commit=False)
@@ -132,9 +140,7 @@ def add_consultation(request, pk):
 @user_passes_test(can_manage_medical_records)
 @require_http_methods(["GET", "POST"])
 def add_vital_signs(request, pk):
-    patient = get_object_or_404(Patient, pk=pk)
-    if request.user.role == User.Role.DOCTOR:
-        pass
+    patient = get_accessible_patient(request.user, pk)
     form = VitalSignsForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         vital_signs = form.save(commit=False)
@@ -150,10 +156,9 @@ def add_vital_signs(request, pk):
 @login_required
 @require_GET
 def medical_record_history(request, pk):
-    patient = get_object_or_404(Patient, pk=pk)
-    if request.user.role == User.Role.RECEPTIONIST:
-        messages.error(request, "This record is restricted to authorised clinical staff.")
-        return redirect("patient_list")
+    if not can_view_medical_records(request.user):
+        return HttpResponseForbidden("This record is restricted to authorised clinical staff.")
+    patient = get_accessible_patient(request.user, pk)
     history = MedicalHistory.objects.filter(patient=patient).select_related("recorded_by").order_by("-updated_at")
     consultations = ConsultationRecord.objects.filter(patient=patient).select_related("doctor", "created_by").order_by("-consultation_datetime")
     vital_signs = VitalSigns.objects.filter(patient=patient).select_related("recorded_by").order_by("-recorded_at")
@@ -168,7 +173,7 @@ def medical_record_history(request, pk):
 @user_passes_test(can_manage_medical_records)
 @require_POST
 def correct_record(request, pk):
-    patient = get_object_or_404(Patient, pk=pk)
+    patient = get_accessible_patient(request.user, pk)
     details = request.POST.get("details", "").strip()
     if not details:
         messages.error(request, "Please provide a correction note before submitting the record correction.")

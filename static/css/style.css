@@ -23,6 +23,7 @@ a{color:inherit;text-decoration:none;}
 .nav-item .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;flex:none;}
 .sidebar-foot{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:#9FB8B3;}
 .sidebar-foot a{display:block;margin-top:8px;color:#F3C89A;font-weight:600;}
+.sidebar-foot .sidebar-logout{display:block;margin-top:8px;padding:0;border:0;background:transparent;color:#F3C89A;font:inherit;font-weight:600;cursor:pointer;}
 
 .main{padding:26px 32px;max-width:1100px;}
 .topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;flex-wrap:wrap;gap:12px;}

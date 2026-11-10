@@ -5,6 +5,13 @@ from .models import ConsultationRecord, MedicalHistory, Patient, VitalSigns
 
 
 class PatientForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        if user and user.role == User.Role.RECEPTIONIST:
+            for field in ("allergies", "chronic_conditions", "notes"):
+                self.fields.pop(field)
+
     class Meta:
         model = Patient
         fields = [

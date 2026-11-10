@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_http_methods, require_POST
 from .forms import StaffLoginForm, StaffRegistrationRequestForm
 from .models import User
 
@@ -51,11 +51,13 @@ def login_view(request):
     return render(request, "accounts/login.html", {"form": form})
 
 
+@require_POST
 def logout_view(request):
     auth_logout(request)
     return redirect("login")
 
 
+@require_http_methods(["GET", "POST"])
 def request_account(request):
     """Public page where a prospective staff member requests an account.
     Account is created INACTIVE and UNAPPROVED — an Administrator must approve it."""

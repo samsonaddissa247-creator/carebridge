@@ -1,5 +1,4 @@
 import os
-import shutil
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -12,7 +11,8 @@ def get_bool_env(name, default):
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-DEBUG = get_bool_env("DEBUG", True)
+IS_VERCEL = bool(os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV") or BASE_DIR == Path("/var/task"))
+DEBUG = get_bool_env("DEBUG", not IS_VERCEL)
 if DEBUG:
     SECRET_KEY = os.environ.get("SECRET_KEY", "carelink-dev-secret-key-change-me")
 else:
@@ -75,7 +75,6 @@ TEMPLATES = [
 WSGI_APPLICATION = "carebridge.wsgi.application"
 
 DATABASE_PATH = BASE_DIR / "db.sqlite3"
-IS_VERCEL = bool(os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV") or BASE_DIR == Path("/var/task"))
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -94,10 +93,7 @@ if DATABASE_URL:
 
     DATABASES["default"] = dj_database_url.parse(DATABASE_URL, conn_max_age=600)
 elif IS_VERCEL:
-    DATABASE_PATH = Path("/tmp/carebridge.sqlite3")
-    if not DATABASE_PATH.exists():
-        shutil.copy2(BASE_DIR / "db.sqlite3", DATABASE_PATH)
-    DATABASES["default"]["NAME"] = DATABASE_PATH
+    raise RuntimeError("DATABASE_URL must be configured for Vercel; its local filesystem is not persistent.")
 
 if IS_VERCEL:
     SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"

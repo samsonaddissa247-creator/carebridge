@@ -47,7 +47,10 @@
     {% endif %}
     <div class="sidebar-foot">
       Signed in as<br><b style="color:#fff;">{{ user.get_full_name|default:user.username }}</b><br>{{ user.get_role_display }}
-      <a href="{% url 'logout' %}">Log out</a>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button class="sidebar-logout" type="submit">Log out</button>
+      </form>
     </div>
   </aside>
   <main class="main">

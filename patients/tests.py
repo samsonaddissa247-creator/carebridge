@@ -1,10 +1,12 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from accounts.models import User
+from appointments.models import QueueEntry
 from patients.models import ConsultationRecord, MedicalHistory, Patient, VitalSigns
 
 
+@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class MedicalRecordsTests(TestCase):
     def setUp(self):
         self.admin = User.objects.create_user(
@@ -43,6 +45,11 @@ class MedicalRecordsTests(TestCase):
             sex=Patient.Sex.FEMALE,
             phone_number="+263771234567",
             registered_by=self.receptionist,
+        )
+        QueueEntry.objects.create(
+            patient=self.patient,
+            assigned_doctor=self.doctor,
+            queue_number="Q-MEDICAL-1",
         )
 
     def test_doctor_can_create_medical_history(self):
@@ -105,9 +112,9 @@ class MedicalRecordsTests(TestCase):
 
     def test_receptionist_cannot_access_private_clinical_records(self):
         self.client.login(username="receptionmed", password="StrongPass123!")
-        response = self.client.get(reverse("medical_record_history", args=[self.patient.pk]), follow=True)
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "restricted")
+        response = self.client.get(reverse("medical_record_history", args=[self.patient.pk]))
+        self.assertEqual(response.status_code, 403)
+        self.assertIn(b"restricted", response.content)
 
     def test_doctor_can_view_patient_medical_records(self):
         self.client.login(username="doctormed", password="StrongPass123!")
@@ -134,3 +141,43 @@ class MedicalRecordsTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Medical record correction noted")
+
+    def test_doctor_cannot_access_unassigned_patient_records(self):
+        other_patient = Patient.objects.create(
+            full_name="Unassigned Synthetic Patient",
+            date_of_birth="1991-02-03",
+            sex=Patient.Sex.MALE,
+            registered_by=self.receptionist,
+        )
+        self.client.force_login(self.doctor)
+        response = self.client.get(reverse("medical_record_history", args=[other_patient.pk]))
+        self.assertEqual(response.status_code, 404)
+        response = self.client.post(
+            reverse("add_consultation", args=[other_patient.pk]),
+            {
+                "doctor": self.doctor.pk,
+                "consultation_datetime": "2026-11-10T10:00",
+                "presenting_complaint": "Synthetic test",
+            },
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_receptionist_cannot_change_clinical_fields_with_tampered_form(self):
+        self.client.force_login(self.receptionist)
+        response = self.client.post(
+            reverse("update_patient", args=[self.patient.pk]),
+            {
+                "full_name": self.patient.full_name,
+                "date_of_birth": "1988-05-04",
+                "sex": Patient.Sex.FEMALE,
+                "phone_number": "000",
+                "allergies": "Tampered allergy",
+                "chronic_conditions": "Tampered condition",
+                "notes": "Tampered note",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.patient.refresh_from_db()
+        self.assertEqual(self.patient.allergies, "")
+        self.assertEqual(self.patient.chronic_conditions, "")
+        self.assertEqual(self.patient.notes, "")

@@ -1,165 +1,318 @@
-# CareLink — Hospital Management System (School Project)
+# CareLink
 
-A single-facility hospital management system built with Python (Django) and SQLite,
-replacing paper-based patient records with a simple, role-based digital system.
+CareLink is a single-facility hospital management system MVP built with Django.
+It is a capstone project exploring how a small hospital can replace selected
+paper-based administrative workflows with a role-based digital system.
+
+## Problem and proposed solution
+
+Patient registration, appointment scheduling, queue coordination and record
+retrieval can rely on paper processes. This can add administrative work and make
+coordination slower. CareLink brings those workflows into one application so
+authorised staff can find operational information and record work in one place.
+It is a demonstrator, not a production-ready clinical information system.
 
 ## Features
-- Role-based login: Hospital Administrator, Doctor, Receptionist, Laboratory Technician
-- Staff accounts require Administrator approval before login (no self-signup for staff)
-- Patient registration with auto-generated patient ID
-- Patient search and full record view (history, allergies, conditions)
-- Appointment booking and status tracking (Pending → Confirmed → Completed)
-- Laboratory test requests, processing statuses, results and verification
-- AI-powered administrative guidance and role-scoped operational summaries (local model)
-- Basic billing / invoices per visit
-- Simple operational reports
-- Role-specific dashboards for each account type
-- Role-scoped dashboards and date-filtered operational reports
 
-## Setup
+- Staff sign-in, account requests, administrator approval and role-based pages.
+- Patient registration, generated patient numbers, search and demographic
+  updates.
+- Appointment booking, status tracking and cancellation reasons.
+- Daily queue registration and queue status updates.
+- Clinical history, consultations and vital signs for authorised staff.
+- Laboratory requests, workflow statuses, results and verification.
+- Operational dashboards and date-filtered appointment, queue, patient and
+  laboratory reports.
+- Optional local AI assistance for CareLink guidance and role-scoped operational
+  summaries.
+- Basic visit invoices.
+- Audit entries for important appointment, queue, clinical and laboratory
+  actions.
+
+## Roles and access
+
+| Role | Main access |
+|---|---|
+| Hospital administrator | Staff approvals, facility dashboards, patient and clinical records, laboratory workflow, billing and operational reports |
+| Receptionist | Patient registration and demographics, appointments, queues, billing and permitted operational reports; not private medical histories or laboratory results |
+| Doctor | Assigned patients, own appointments and queue, clinical records, laboratory follow-up and role-scoped reports |
+| Laboratory technician | Laboratory requests, results and verification; laboratory workflow reports |
+
+Access is checked by Django views and forms, not only by hiding navigation links.
+Doctors' patient access is limited to patients connected to their appointment,
+consultation or assigned queue. Administrators have broad access in this
+single-facility MVP; an institution should confirm its actual access policy.
+
+## Technologies
+
+- Python 3.12
+- Django 6.1 (the version used for the current local test run)
+- SQLite for local development; PostgreSQL can be configured for deployment
+- Ollama with `qwen2.5:3b` for optional local AI assistance
+- Django templates, HTML, CSS and browser JavaScript
+
+Python dependencies are listed in `requirements.txt`. No paid API is required.
+Ollama is optional; the rest of the application works when it is unavailable.
+
+## Project structure
+
+```text
+accounts/       Custom staff user, sign-in, approval and role forms
+appointments/   Appointment, queue and audit models and workflows
+assistant/      Role-scoped summaries and local Ollama adapter
+billing/        Basic invoices
+core/           Dashboards, reporting queries and tests
+laboratory/     Test requests, results, verification and audit trail
+patients/       Patient and clinical-record models, forms and workflows
+carebridge/     Django settings, root URLs and WSGI/ASGI entry points
+api/            Vercel WSGI entry point
+templates/      Django templates
+static/         CareLink styles and static assets
+```
+
+The interface retains the existing CareLink teal/green, white and warm accent
+palette. No redesign is part of this final stage.
+
+## Requirements and local installation
+
+Use Python 3.12 and pip. Git is needed to clone the project. Ollama is only
+needed if you want to test the AI assistant.
 
 ```bash
-cd carebridge
+git clone <repository-url> carelink
+cd carelink
+python3.12 -m venv venv
+./venv/bin/python -m pip install --upgrade pip
+./venv/bin/python -m pip install -r requirements.txt
+```
+
+CareLink reads configuration from environment variables. It does not load a
+`.env` file automatically. For a local development shell:
+
+```bash
+export DEBUG=True
+export SECRET_KEY="$(./venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(64))')"
+export ALLOWED_HOSTS="localhost,127.0.0.1"
+```
+
+Run the database migrations:
+
+```bash
 ./venv/bin/python manage.py migrate
-./venv/bin/python seed.py        # creates demo accounts + sample data
+```
+
+The default local database is `db.sqlite3` in the project directory. Keep this
+file local: it can contain patient and staff data. Do not copy real patient
+information into a demonstration database.
+
+## Administrator account
+
+Create a Django superuser:
+
+```bash
+./venv/bin/python manage.py createsuperuser
+```
+
+Sign in to `/django-admin/` with that account, open its user record, and set
+`role` to **Hospital Administrator**, `is_active` to enabled and `is_approved`
+to enabled. Use a unique, strong password. The project does not ship a
+production administrator password.
+
+### Optional synthetic demonstration data
+
+The seed script is for a development database only. It refuses to run unless
+`DEBUG=True`, `CARELINK_ALLOW_DEMO_DATA=1`, and a separate password is supplied
+for each demo role. The script creates fictional patients with no phone numbers
+and does not print passwords.
+
+```bash
+export CARELINK_ALLOW_DEMO_DATA=1
+read -s -p "Demo admin password: " CARELINK_DEMO_ADMIN_PASSWORD; echo; export CARELINK_DEMO_ADMIN_PASSWORD
+read -s -p "Demo doctor password: " CARELINK_DEMO_DOCTOR_PASSWORD; echo; export CARELINK_DEMO_DOCTOR_PASSWORD
+read -s -p "Demo receptionist password: " CARELINK_DEMO_RECEPTIONIST_PASSWORD; echo; export CARELINK_DEMO_RECEPTIONIST_PASSWORD
+read -s -p "Demo pending-user password: " CARELINK_DEMO_PENDING_PASSWORD; echo; export CARELINK_DEMO_PENDING_PASSWORD
+./venv/bin/python seed.py
+```
+
+Enter a different unique value at each hidden prompt; do not use these
+demonstration accounts on a deployed system. The script does not reset existing
+users or delete existing data. If a local database was seeded by an older
+project version, review and change or remove its old demo accounts before using
+it.
+
+## Run CareLink
+
+```bash
 ./venv/bin/python manage.py runserver
 ```
 
-Visit http://127.0.0.1:8000/
+Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/). After signing in, use the
+role-specific Dashboard and Reports links. The Django administration page is at
+`/django-admin/`.
 
-## AI assistant (optional local setup)
+## Ollama and the AI assistant
 
-CareLink uses **Ollama** to call the real **Qwen2.5 3B** language model through
-Ollama's local HTTP chat API. It does not use a paid API or require an API key.
-The model runs on the same machine as Ollama; the backend rejects configured
-model endpoints that are not loopback URLs.
+The provider is **Ollama** and the model is **Qwen2.5 3B**, model identifier
+`qwen2.5:3b`. The Django backend calls Ollama's local `/api/chat` endpoint; the
+browser never receives model credentials. No API key is needed.
 
 1. Install Ollama using the instructions for your operating system at
    [ollama.com](https://ollama.com/).
-2. Download the model once:
+2. Start the local service in a separate terminal if it is not already running:
+
+   ```bash
+   ollama serve
+   ```
+
+3. Download the model and confirm it is listed:
 
    ```bash
    ollama pull qwen2.5:3b
+   ollama list
    ```
 
-3. Ensure Ollama is running (normally its local service listens on port 11434).
-   If it is not already running as a service, start `ollama serve` in a separate
-   terminal. In the terminal where you start Django, configure CareLink if you
-   need non-default values:
+4. Configure and start CareLink in another terminal:
 
    ```bash
    export CARELINK_AI_MODEL="qwen2.5:3b"
    export CARELINK_OLLAMA_URL="http://127.0.0.1:11434/api/chat"
    export CARELINK_AI_TIMEOUT="20"
+   ./venv/bin/python manage.py runserver
    ```
 
-   Then run `./venv/bin/python manage.py runserver`.
+5. Sign in as an authorised staff role and choose **AI Assistant**. Ask a
+   CareLink workflow question or a question about figures available to that
+   role. For an end-to-end live check, ask for a permitted operational count
+   that can be independently compared with the dashboard.
 
-   These settings can also be exported in the shell that starts the application.
-   `CARELINK_OLLAMA_URL` must point to a local Ollama endpoint. No AI credential
-   is needed or stored.
+If Ollama is stopped or the model is missing, the assistant shows a
+service-unavailable message. Dashboards, reports and other CareLink modules do
+not depend on Ollama.
 
-Without Ollama running or the configured model available, the rest of CareLink
-continues to work. Assistant requests return a friendly service-unavailable
-message; the application does not substitute a scripted answer for the model.
+### Responsible AI and privacy
 
-### AI privacy and limitations
+The assistant supports administrative system guidance and operational
+summaries only. Operational figures are calculated by CareLink from database
+queries scoped to the signed-in role; the model is not the source of the
+figures. The assistant must not diagnose, interpret laboratory results,
+prescribe medication or make clinical decisions. AI responses can contain
+errors and must be checked. Qualified healthcare professionals remain
+responsible for clinical decisions.
 
-- The assistant is for system guidance and administrative summaries only.
-- The backend calculates operational counts from the database, filtered by staff
-  role. It never fetches patient names, contact details, records or test results
-  into the model context. Aggregate values, the current question and recent
-  in-memory conversation text are sent to the local model only.
-- Patient-number, phone, email and date-of-birth-like input is rejected. Do not
-  enter patient-identifying information. The filter cannot recognize every
-  possible name or identifier, so staff must still avoid putting private data
-  into questions. Requests are restricted to the local Ollama service; there is
-  no third-party AI provider fallback.
-- Conversations are held only in the current browser page's memory, are not
-  saved to the CareLink database, and are cleared by **New conversation** or
-  leaving the page.
-- The endpoint requires authentication and CSRF protection. Input is size-limited,
-  conversations are bounded, and requests are limited to 10 per user per minute
-  using Django's local-memory cache. For a multi-worker deployment, replace this
-  with a shared cache before relying on the rate limit operationally.
-- The assistant must not diagnose, interpret clinical results, recommend
-  treatment, or prescribe medication. A basic safety filter refuses common
-  clinical prompts, but it is not a clinical safety system and cannot guarantee
-  detection of every unsafe request.
-- AI output can be inaccurate. Verify any operational explanation against
-  CareLink. This feature is not a substitute for clinical, institutional, legal,
-  or privacy review.
-- A local Ollama model is not currently available on the Vercel deployment
-  configuration. The assistant remains unavailable there unless the deployment
-  architecture is changed to run a private local model service; CareLink will
-  not send information to a third-party AI provider as a fallback.
+The application sends only the user's question, bounded conversation context
+and aggregate operational values to the configured local Ollama service. It
+does not intentionally include patient names, contact details, clinical
+histories or laboratory results. A pattern-based input check rejects some
+common identifiers, but it cannot detect every name or identifying detail.
+Staff must not enter patient information. Conversations are kept in browser
+memory only and are not saved to the CareLink database.
 
-## Dashboards and operational reports
+## Automated tests and checks
 
-After signing in, use **Dashboard** in the sidebar for the overview available to
-your staff role. Administrators see facility-wide appointment, queue and
-laboratory counts plus recent non-clinical activity. Receptionists see patient
-registration, appointments and queue flow. Doctors see their own appointments,
-assigned queue and laboratory requests/results awaiting review. Laboratory
-technicians see request workflow and verification counts.
-
-Open **Reports** in the sidebar to select a date. The page shows daily
-appointments, weekly and monthly appointment summaries, queue completion and
-patient registration metrics, plus laboratory activity where permitted.
-Reports show aggregate operational information rather than patient-level
-medical histories or laboratory results.
-
-Report access is enforced on the server:
-
-- Administrators: facility-wide operational, registration, queue, laboratory
-  and existing billing summaries.
-- Receptionists: registration, appointment and queue summaries; no clinical
-  histories or laboratory results.
-- Doctors: their own appointment, assigned queue, consultation and laboratory
-  follow-up counts.
-- Laboratory technicians: laboratory workflow and verification summaries only.
-
-The AI assistant uses its existing local Ollama integration and role-scoped
-operational summaries. It is not the source of report figures and is not
-required for dashboards or reports to work.
-
-## Vercel deployment
-
-Set a PostgreSQL connection string as the Vercel `DATABASE_URL`, `POSTGRES_URL`,
-or `POSTGRES_PRISMA_URL` environment variable. Run the migrations against that
-database before the first deployment:
+Run the system check, migration checks and test suite:
 
 ```bash
-DATABASE_URL="postgresql://..." python manage.py migrate
+./venv/bin/python manage.py check
+./venv/bin/python manage.py makemigrations --check --dry-run
+./venv/bin/python manage.py migrate --check
+./venv/bin/python manage.py test
+git diff --check
 ```
 
-The deployed app falls back to the bundled SQLite database when `DATABASE_URL`
-is not configured, but Vercel storage is temporary and account requests or
-approvals will not persist reliably in that mode.
+AI provider behavior is mocked in automated tests; those tests do not require
+Ollama or make paid API requests. A real response must be verified separately
+with Ollama running and the requested model downloaded.
 
-## Demo accounts (created by seed.py)
+## Security, data handling and legal review
 
-| Role          | Username    | Password    |
-|---------------|-------------|-------------|
-| Admin         | admin       | admin123    |
-| Doctor        | drncube     | doctor123   |
-| Receptionist  | reception1  | front123    |
-| Pending (blocked demo) | drpending | pending123 |
+- Passwords are stored with Django's password hashing. Account requests remain
+  inactive and unapproved until reviewed by an administrator.
+- Django authentication, server-side role checks, CSRF middleware, POST-only
+  data-changing actions, bounded AI requests and secure session-cookie
+  attributes when `DEBUG=False` are used.
+- Keep `SECRET_KEY`, database connection strings and demo passwords outside Git.
+  `DEBUG` must be `False` in any deployed environment. Configure a strong
+  `SECRET_KEY`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS` and HTTPS at the
+  deployment boundary.
+- Use only fictional patient and staff data for demonstrations. Restrict access
+  to the SQLite or PostgreSQL database and make encrypted, tested backups
+  according to the institution's policy. The project does not configure
+  database-at-rest encryption, automated backup retention or disaster recovery.
+- Audit entries support review of selected workflow actions; they are not a
+  complete security monitoring or tamper-proof audit system.
+- This project is not certified as compliant with Zimbabwean law or healthcare
+  standards. A qualified Zimbabwean legal/privacy professional and healthcare
+  institution must review applicable requirements, retention periods, access
+  policies, consent, incident response and deployment safeguards.
 
-Try logging in as `drpending` to see the approval-gate in action — then log in as
-`admin` and approve the account from the "Staff Approvals" page.
+## Deployment preparation and limitations
 
-## Project structure
-- `accounts/` — custom User model with roles, login, staff approval workflow
-- `patients/` — patient registration and records
-- `appointments/` — booking and status tracking
-- `laboratory/` — laboratory requests, results and audit trail
-- `assistant/` — role-scoped administrative summaries and local model integration
-- `billing/` — simple invoicing
-- `core/` — role-based dashboards and reports
-- `templates/`, `static/` — CareLink UI (teal/ochre theme)
+The repository includes a Vercel Python WSGI entry point and routing
+configuration. Django settings accept `DATABASE_URL` (also
+`POSTGRES_URL`/`POSTGRES_PRISMA_URL`) for PostgreSQL. A deployment needs at
+least:
 
-## Notes for extending
-This is scoped as an MVP for a school project. Documented "future scope" ideas
-(multi-facility support, offline sync, blood bank, pharmacy stock, SMS OTP for
-patients, etc.) are described in the accompanying proposal document.
+```text
+DEBUG=False
+SECRET_KEY=<strong secret stored in the host's environment>
+ALLOWED_HOSTS=<deployed hostnames>
+CSRF_TRUSTED_ORIGINS=<https origins for the deployed site>
+DATABASE_URL=<PostgreSQL connection string>
+```
+
+Apply migrations to the deployment database before serving traffic. Do not use
+SQLite in a serverless deployment. Vercel settings now fail fast unless a
+database URL is configured; `DATABASE_URL` must point to a persistent
+PostgreSQL database, because serverless local storage is not durable. Static
+files, production settings and the selected Vercel/PostgreSQL combination
+still need verification in a deployment preview before use. No deployment has
+been performed as part of this project stage.
+
+The local Ollama URL points to `127.0.0.1` on the Django host. A Vercel
+function cannot reach Ollama running on a developer's computer, so the AI
+assistant is not available on the current Vercel architecture. For a complete
+deployment, use a persistent Django host with PostgreSQL and Ollama reachable
+only over a private network, or keep the AI feature disabled. A local
+development/capstone demonstration requires no cloud hosting.
+
+## Known limitations
+
+- This is a single-facility MVP, not a validated production clinical system.
+- Ollama's safety filter is pattern-based and cannot guarantee detection of all
+  clinical or identifying prompts.
+- No live model response was generated during this review because the local
+  Ollama endpoint did not respond. Use the setup above to perform a live check
+  locally.
+- SQLite is suitable for local development only; production database backup,
+  restore, monitoring and operational procedures must be supplied by the
+  deploying institution.
+- Historical status-at-time reports, formal retention automation, multi-site
+  operation and institutional compliance review are outside this MVP.
+
+## Capstone demonstration plan
+
+Use the development database and synthetic data only. Prepare four separate
+accounts with the roles used in the demonstration; do not share passwords or
+use real patient information.
+
+1. Sign in as the administrator and show staff approval and the facility
+   dashboard.
+2. Sign in as the receptionist; register a fictional patient and book an
+   appointment.
+3. Add that patient to the queue and show the queue number and status.
+4. Sign in as the assigned doctor; open the patient's record, document a
+   consultation and vital signs, and create a laboratory request.
+5. Sign in as a laboratory technician; progress the request, enter a synthetic
+   result and verify it.
+6. Return to the authorised doctor and review the result's verification state.
+7. Open Reports and demonstrate the daily, weekly, monthly, queue and
+   laboratory summaries appropriate to the current role.
+8. With Ollama running and `qwen2.5:3b` downloaded, ask the assistant a
+   non-clinical workflow question and an operational question; compare reported
+   counts with CareLink's dashboard.
+9. Demonstrate access restrictions by trying an unassigned doctor's patient
+   record and a receptionist's clinical-record or laboratory-result page.
+10. Explain that CareLink reduces scattered administrative work by connecting
+    registration, appointments, queues, records, laboratory workflow and
+    reporting, while staff remain responsible for verifying information and
+    making all clinical decisions.
