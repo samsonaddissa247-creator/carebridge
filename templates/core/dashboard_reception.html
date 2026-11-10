@@ -7,6 +7,11 @@
 
 <div class="stat-row">
   <div class="stat"><div class="n">{{ patients_total }}</div><div class="l">Total patients</div></div>
+  <div class="stat"><div class="n">{{ registered_today }}</div><div class="l">Registered today</div></div>
+  <div class="stat"><div class="n">{{ appointments_today_count }}</div><div class="l">Appointments today</div></div>
+  <div class="stat"><div class="n">{{ waiting_count }}</div><div class="l">Waiting</div></div>
+  <div class="stat"><div class="n">{{ in_progress_count }}</div><div class="l">Being attended</div></div>
+  <div class="stat"><div class="n">{{ completed_queue_count }}</div><div class="l">Queue completed</div></div>
   <div class="stat {% if unpaid_invoices %}warn{% endif %}"><div class="n">{{ unpaid_invoices }}</div><div class="l">Unpaid invoices</div></div>
 </div>
 
@@ -22,6 +27,28 @@
       {% endfor %}
     </table>
   </div>
+  <div class="card tab" data-tab="UPCOMING">
+    <h3 class="section">Upcoming appointments</h3>
+    <table>
+      <tr><th>When</th><th>Patient</th><th>Doctor</th><th>Status</th></tr>
+      {% for a in upcoming_appointments %}
+      <tr><td class="mono">{{ a.scheduled_at|date:"d M, H:i" }}</td><td>{{ a.patient.full_name }}</td><td>{{ a.doctor.get_full_name|default:"Unassigned" }}</td><td><span class="pill {{ a.status|lower }}">{{ a.get_status_display }}</span></td></tr>
+      {% empty %}
+      <tr><td colspan="4" style="color:var(--muted);">No upcoming appointments.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div class="card tab" data-tab="WAITING QUEUE">
+    <h3 class="section">Waiting queue</h3>
+    <table>
+      <tr><th>Queue #</th><th>Patient</th><th>Added</th></tr>
+      {% for entry in waiting_queue %}
+      <tr><td class="mono">{{ entry.queue_number }}</td><td>{{ entry.patient.full_name }}</td><td>{{ entry.added_at|date:"H:i" }}</td></tr>
+      {% empty %}
+      <tr><td colspan="3" style="color:var(--muted);">No patients waiting.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
   <div class="card tab" data-tab="QUICK ACTIONS">
     <h3 class="section">Quick actions</h3>
     <div class="actions" style="flex-direction:column;align-items:stretch;">
@@ -29,6 +56,8 @@
       <a class="btn ghost" href="{% url 'book_appointment' %}">Book appointment</a>
       <a class="btn ghost" href="{% url 'add_to_queue' %}">Add to queue</a>
       <a class="btn ghost" href="{% url 'create_invoice' %}">Create invoice</a>
+      <a class="btn ghost" href="{% url 'reports' %}">View operational reports</a>
+      <a class="btn ghost" href="{% url 'assistant_chat' %}">Ask the AI assistant</a>
     </div>
   </div>
 </div>

@@ -1,24 +1,81 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="topbar">
-  <div><h1>Your queue</h1><p>{{ today_count }} appointment{{ today_count|pluralize }} scheduled today</p></div>
+  <div><h1>Your clinical operations</h1><p>Appointments, assigned queue and results requiring review</p></div>
   <div class="who"><div class="avatar">{{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}</div><div><div style="font-weight:600;">{{ user.get_full_name }}</div><div class="role">Doctor{% if user.department %} · {{ user.department }}{% endif %}</div></div></div>
 </div>
 
-<div class="card tab" data-tab="UPCOMING">
-  <h3 class="section">Your upcoming appointments</h3>
-  <table>
-    <tr><th>When</th><th>Patient</th><th>Reason</th><th>Status</th></tr>
-    {% for a in my_appointments %}
-    <tr>
-      <td class="mono">{{ a.scheduled_at|date:"d M, H:i" }}</td>
-      <td><a href="{% url 'patient_detail' a.patient.id %}">{{ a.patient.full_name }}</a></td>
-      <td>{{ a.reason }}</td>
-      <td><span class="pill {{ a.status|lower }}">{{ a.get_status_display }}</span></td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="4" style="color:var(--muted);">No upcoming appointments.</td></tr>
-    {% endfor %}
-  </table>
+<div class="stat-row">
+  <div class="stat"><div class="n">{{ today_count }}</div><div class="l">Appointments today</div></div>
+  <div class="stat"><div class="n">{{ waiting_count }}</div><div class="l">Patients waiting for you</div></div>
+  <div class="stat"><div class="n">{{ in_progress_count }}</div><div class="l">Being attended</div></div>
+  <div class="stat"><div class="n">{{ completed_consultations_today }}</div><div class="l">Consultations today</div></div>
+  <div class="stat {% if pending_lab_review %}warn{% endif %}"><div class="n">{{ pending_lab_review }}</div><div class="l">Lab results awaiting review</div></div>
+</div>
+
+<div class="grid-2">
+  <div class="card tab" data-tab="TODAY'S APPOINTMENTS">
+    <h3 class="section">Today's appointments</h3>
+    <table>
+      <tr><th>When</th><th>Patient</th><th>Status</th></tr>
+      {% for a in appointments_today %}
+      <tr><td class="mono">{{ a.scheduled_at|date:"H:i" }}</td><td><a href="{% url 'patient_detail' a.patient.pk %}">{{ a.patient.full_name }}</a></td><td><span class="pill {{ a.status|lower }}">{{ a.get_status_display }}</span></td></tr>
+      {% empty %}
+      <tr><td colspan="3" style="color:var(--muted);">No appointments today.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div class="card tab" data-tab="WAITING FOR YOU">
+    <h3 class="section">Patients waiting in your queue</h3>
+    <table>
+      <tr><th>Queue #</th><th>Patient</th><th>Added</th></tr>
+      {% for entry in waiting_queue %}
+      <tr><td class="mono">{{ entry.queue_number }}</td><td><a href="{% url 'patient_detail' entry.patient.pk %}">{{ entry.patient.full_name }}</a></td><td>{{ entry.added_at|date:"H:i" }}</td></tr>
+      {% empty %}
+      <tr><td colspan="3" style="color:var(--muted);">No patients waiting in your queue.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div class="card tab" data-tab="UPCOMING APPOINTMENTS">
+    <h3 class="section">Upcoming appointments</h3>
+    <table>
+      <tr><th>When</th><th>Patient</th><th>Reason</th><th>Status</th></tr>
+      {% for a in upcoming_appointments %}
+      <tr>
+        <td class="mono">{{ a.scheduled_at|date:"d M, H:i" }}</td>
+        <td><a href="{% url 'patient_detail' a.patient.pk %}">{{ a.patient.full_name }}</a></td>
+        <td>{{ a.reason }}</td>
+        <td><span class="pill {{ a.status|lower }}">{{ a.get_status_display }}</span></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" style="color:var(--muted);">No upcoming appointments.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div class="card tab" data-tab="ASSIGNED PATIENTS">
+    <h3 class="section">Patients assigned to you</h3>
+    <ul class="simple-list">
+      {% for patient in assigned_patients %}
+      <li><a href="{% url 'patient_detail' patient.pk %}">{{ patient.full_name }}</a> <span class="mono">{{ patient.patient_id }}</span></li>
+      {% empty %}
+      <li style="color:var(--muted);">No patients currently assigned.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<div class="card tab" data-tab="APPOINTMENTS TODAY">
+  <h3 class="section">Today's appointment status</h3>
+  {% for row in appointment_status_rows %}
+  <div class="chart-row">
+    <span>{{ row.label }}</span><div class="chart-track"><span style="width:{{ row.width }}%;"></span></div><b>{{ row.total }}</b>
+  </div>
+  {% endfor %}
+</div>
+<div class="actions">
+  <a class="btn ghost" href="{% url 'appointment_list' %}">My appointments</a>
+  <a class="btn ghost" href="{% url 'lab_dashboard' %}">Review laboratory requests</a>
+  <a class="btn ghost" href="{% url 'reports' %}">My operational reports</a>
+  <a class="btn ghost" href="{% url 'assistant_chat' %}">Ask the AI assistant</a>
 </div>
 {% endblock %}

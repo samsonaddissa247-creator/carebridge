@@ -238,4 +238,6 @@ class LaboratoryWorkflowTests(TestCase):
         response = self.client.get(reverse("lab_dashboard"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Laboratory")
-        self.assertEqual(self.client.get(reverse("reports")).status_code, 403)
+        reports = self.client.get(reverse("reports"))
+        self.assertEqual(reports.status_code, 200)
+        self.assertTrue(reports.context["can_view_lab_reports"])

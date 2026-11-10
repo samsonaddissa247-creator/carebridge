@@ -1,12 +1,133 @@
 {% extends "base.html" %}
+{% block title %}Operational reports — CareLink{% endblock %}
 {% block content %}
-<div class="topbar"><div><h1>Reports</h1><p>Simple operational summary</p></div></div>
+<div class="topbar">
+  <div><h1>Operational reports</h1><p>Aggregated activity for the selected date and period.</p></div>
+</div>
+<div class="card tab" data-tab="REPORT DATE">
+  <form method="get" class="report-filter">
+    <label for="report-date">Select a date</label>
+    <input id="report-date" type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" required>
+    <button class="btn primary small" type="submit">Update reports</button>
+  </form>
+</div>
+
+{% if can_view_admin_reports or can_view_reception_reports or can_view_doctor_reports %}
 <div class="stat-row">
-  <div class="stat"><div class="n">{{ patients_total }}</div><div class="l">Total patients</div></div>
-  <div class="stat"><div class="n">{{ patients_this_week }}</div><div class="l">Registered this week</div></div>
-  <div class="stat"><div class="n">{{ appointments_total }}</div><div class="l">Total appointments</div></div>
-  <div class="stat"><div class="n">{{ appointments_completed }}</div><div class="l">Completed appointments</div></div>
+  <div class="stat"><div class="n">{{ daily_appointments_total }}</div><div class="l">Appointments on {{ selected_date|date:"d M" }}</div></div>
+  <div class="stat"><div class="n">{{ weekly_appointments_total }}</div><div class="l">Appointments this week</div></div>
+  <div class="stat"><div class="n">{{ monthly_appointments_total }}</div><div class="l">Appointments this month</div></div>
+  {% if can_view_admin_reports or can_view_reception_reports %}
+    <div class="stat"><div class="n">{{ patient_registrations }}</div><div class="l">Patients registered on selected date</div></div>
+  {% endif %}
+  {% if can_view_doctor_reports %}
+    <div class="stat"><div class="n">{{ lab_requests_pending }}</div><div class="l">Your pending lab requests on selected date</div></div>
+    <div class="stat"><div class="n">{{ lab_results_awaiting_review }}</div><div class="l">Your unverified completed results</div></div>
+    <div class="stat"><div class="n">{{ consultations_on_date }}</div><div class="l">Your consultations on selected date</div></div>
+    <div class="stat"><div class="n">{{ consultations_this_week }}</div><div class="l">Your consultations this week</div></div>
+    <div class="stat"><div class="n">{{ consultations_this_month }}</div><div class="l">Your consultations this month</div></div>
+  {% endif %}
+</div>
+
+<div class="grid-2">
+  <div class="card tab" data-tab="DAILY APPOINTMENTS">
+    <h3 class="section">Appointments by status · {{ selected_date|date:"d M Y" }}</h3>
+    <table>
+      <tr><th>Status</th><th>Count</th></tr>
+      {% for row in daily_appointments %}
+      <tr><td>{{ row.label }}</td><td>{{ row.total }}</td></tr>
+      {% empty %}
+      <tr><td colspan="2" style="color:var(--muted);">No appointment data.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% if can_view_admin_reports %}
+  <div class="card tab" data-tab="PATIENT REGISTRATION">
+    <h3 class="section">Patient registrations · week containing selected date</h3>
+    {% for row in patient_registration_chart %}
+    <div class="chart-row">
+      <span>{{ row.label|date:"D d" }}</span><div class="chart-track"><span style="width:{{ row.width }}%;"></span></div><b>{{ row.total }}</b>
+    </div>
+    {% empty %}
+    <p style="color:var(--muted);">No patient registration data.</p>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid-2">
+  <div class="card tab" data-tab="WEEKLY APPOINTMENTS">
+    <h3 class="section">Appointments by day · week containing selected date</h3>
+    {% for row in weekly_appointment_chart %}
+    <div class="chart-row">
+      <span>{{ row.label|date:"D d" }}</span><div class="chart-track"><span style="width:{{ row.width }}%;"></span></div><b>{{ row.total }}</b>
+    </div>
+    {% empty %}
+    <p style="color:var(--muted);">No weekly appointment data.</p>
+    {% endfor %}
+  </div>
+  <div class="card tab" data-tab="MONTHLY APPOINTMENTS">
+    <h3 class="section">Appointments by day · {{ selected_date|date:"F Y" }}</h3>
+    <div class="monthly-chart">
+      {% for row in monthly_appointment_chart %}
+      <div class="monthly-bar" title="{{ row.label|date:'d M' }}: {{ row.total }} appointments">
+        <span style="height:{{ row.width }}%;"></span><small>{{ row.label|date:"d" }}</small>
+      </div>
+      {% empty %}
+      <p style="color:var(--muted);">No monthly appointment data.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if can_view_admin_reports or can_view_reception_reports %}
+<div class="grid-2">
+  <div class="card tab" data-tab="QUEUE PERFORMANCE">
+    <h3 class="section">Queue activity · {{ selected_date|date:"d M Y" }}</h3>
+    <div class="stat-row report-stat-row">
+      <div class="stat"><div class="n">{{ queue_total }}</div><div class="l">Total entries</div></div>
+      <div class="stat"><div class="n">{{ queue_waiting }}</div><div class="l">Waiting</div></div>
+      <div class="stat"><div class="n">{{ queue_in_progress }}</div><div class="l">In progress</div></div>
+      <div class="stat"><div class="n">{{ queue_completed }}</div><div class="l">Completed</div></div>
+      <div class="stat"><div class="n">{{ queue_cancelled }}</div><div class="l">Cancelled</div></div>
+    </div>
+    <p>Completion rate: <b>{{ queue_completion_percent }}%</b> of non-cancelled queue entries.</p>
+  </div>
+  <div class="card tab" data-tab="PATIENT REGISTRATIONS">
+    <h3 class="section">Registration summary</h3>
+    <p>New registrations on {{ selected_date|date:"d M Y" }}: <b>{{ patient_registrations }}</b></p>
+    {% if can_view_admin_reports %}<p>Total registered patients: <b>{{ patients_total }}</b></p>
+    <p>Registrations this week: <b>{{ registrations_this_week }}</b></p>{% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if can_view_lab_reports %}
+<div class="card tab" data-tab="LABORATORY ACTIVITY">
+  <h3 class="section">Laboratory request summary · {{ selected_date|date:"d M Y" }}</h3>
+  <p>{{ lab_requests_total }} requests created on the selected date; {{ lab_requests_pending }} remain pending.</p>
+  {% for row in lab_status_rows %}
+  <div class="chart-row">
+    <span>{{ row.label }}</span><div class="chart-track"><span style="width:{{ row.width }}%;"></span></div><b>{{ row.total }}</b>
+  </div>
+  {% empty %}
+  <p style="color:var(--muted);">No laboratory activity for this date.</p>
+  {% endfor %}
+</div>
+{% elif can_view_doctor_reports %}
+<div class="card tab" data-tab="LABORATORY FOLLOW-UP">
+  <h3 class="section">Your laboratory follow-up · {{ selected_date|date:"d M Y" }}</h3>
+  <p>Pending requests created on this date: <b>{{ lab_requests_pending }}</b></p>
+  <p>Your completed, unverified results dated {{ selected_date|date:"d M Y" }}: <b>{{ lab_results_awaiting_review }}</b></p>
+</div>
+{% endif %}
+
+{% if can_view_admin_reports %}
+<div class="stat-row">
+  <div class="stat"><div class="n">{{ appointments_total }}</div><div class="l">All appointments</div></div>
   <div class="stat"><div class="n">${{ revenue_total }}</div><div class="l">Revenue collected</div></div>
   <div class="stat warn"><div class="n">${{ revenue_pending }}</div><div class="l">Revenue pending</div></div>
 </div>
+{% endif %}
 {% endblock %}

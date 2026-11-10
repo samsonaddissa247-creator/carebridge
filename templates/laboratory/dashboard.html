@@ -3,15 +3,21 @@
 {% block content %}
 <div class="topbar">
   <div><h1>Laboratory</h1><p>Manage laboratory requests and review test progress.</p></div>
-  {% if can_create %}<a class="btn primary" href="{% url 'lab_create_request' %}">Request a test</a>{% endif %}
+  <div class="actions">
+    {% if can_create %}<a class="btn primary" href="{% url 'lab_create_request' %}">Request a test</a>{% endif %}
+    <a class="btn ghost" href="{% url 'reports' %}">Laboratory reports</a>
+    <a class="btn ghost" href="{% url 'assistant_chat' %}">Ask the AI assistant</a>
+  </div>
 </div>
 
 <div class="stat-row">
-  <div class="stat"><div class="n">{{ status_counts.REQUESTED }}</div><div class="l">New requests</div></div>
+  <div class="stat"><div class="n">{{ status_counts.REQUESTED }}</div><div class="l">Awaiting collection</div></div>
   <div class="stat"><div class="n">{{ status_counts.COLLECTED }}</div><div class="l">Collected</div></div>
   <div class="stat"><div class="n">{{ status_counts.PROCESSING }}</div><div class="l">Processing</div></div>
   <div class="stat"><div class="n">{{ status_counts.COMPLETED }}</div><div class="l">Completed</div></div>
   <div class="stat"><div class="n">{{ status_counts.CANCELLED }}</div><div class="l">Cancelled</div></div>
+  {% if can_manage %}<div class="stat"><div class="n">{{ new_today_count }}</div><div class="l">New today</div></div>
+  <div class="stat {% if awaiting_verification_count %}warn{% endif %}"><div class="n">{{ awaiting_verification_count }}</div><div class="l">Awaiting verification</div></div>{% endif %}
 </div>
 
 <div class="card tab" data-tab="LABORATORY REQUESTS">

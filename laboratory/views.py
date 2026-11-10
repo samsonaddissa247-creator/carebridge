@@ -2,6 +2,7 @@ from functools import wraps
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Q
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -55,12 +56,29 @@ def audit(request, actor, action, *, old_status="", new_status="", details=""):
 @require_GET
 def dashboard(request):
     requests = visible_requests(request.user)
-    context = {
-        "requests": requests,
-        "status_counts": {
-            status: requests.filter(status=status).count()
+    aggregate = requests.aggregate(
+        **{
+            f"status_{status.lower()}": Count("pk", filter=Q(status=status))
             for status, _label in LabRequest.Status.choices
         },
+        new_today=Count("pk", filter=Q(status=LabRequest.Status.REQUESTED, created_at__date=timezone.localdate())),
+        awaiting_verification=Count(
+            "pk",
+            filter=Q(
+                status=LabRequest.Status.COMPLETED,
+                result__isnull=False,
+                result__verified_at__isnull=True,
+            ),
+        ),
+    )
+    context = {
+        "requests": requests[:100],
+        "status_counts": {
+            status: aggregate[f"status_{status.lower()}"] or 0
+            for status, _label in LabRequest.Status.choices
+        },
+        "new_today_count": aggregate["new_today"] or 0,
+        "awaiting_verification_count": aggregate["awaiting_verification"] or 0,
         "can_manage": can_manage_laboratory(request.user),
         "can_create": request.user.role == User.Role.DOCTOR,
     }

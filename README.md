@@ -14,6 +14,7 @@ replacing paper-based patient records with a simple, role-based digital system.
 - Basic billing / invoices per visit
 - Simple operational reports
 - Role-specific dashboards for each account type
+- Role-scoped dashboards and date-filtered operational reports
 
 ## Setup
 
@@ -92,6 +93,35 @@ message; the application does not substitute a scripted answer for the model.
   configuration. The assistant remains unavailable there unless the deployment
   architecture is changed to run a private local model service; CareLink will
   not send information to a third-party AI provider as a fallback.
+
+## Dashboards and operational reports
+
+After signing in, use **Dashboard** in the sidebar for the overview available to
+your staff role. Administrators see facility-wide appointment, queue and
+laboratory counts plus recent non-clinical activity. Receptionists see patient
+registration, appointments and queue flow. Doctors see their own appointments,
+assigned queue and laboratory requests/results awaiting review. Laboratory
+technicians see request workflow and verification counts.
+
+Open **Reports** in the sidebar to select a date. The page shows daily
+appointments, weekly and monthly appointment summaries, queue completion and
+patient registration metrics, plus laboratory activity where permitted.
+Reports show aggregate operational information rather than patient-level
+medical histories or laboratory results.
+
+Report access is enforced on the server:
+
+- Administrators: facility-wide operational, registration, queue, laboratory
+  and existing billing summaries.
+- Receptionists: registration, appointment and queue summaries; no clinical
+  histories or laboratory results.
+- Doctors: their own appointment, assigned queue, consultation and laboratory
+  follow-up counts.
+- Laboratory technicians: laboratory workflow and verification summaries only.
+
+The AI assistant uses its existing local Ollama integration and role-scoped
+operational summaries. It is not the source of report figures and is not
+required for dashboards or reports to work.
 
 ## Vercel deployment
 
