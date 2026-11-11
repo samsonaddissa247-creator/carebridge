@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Digital import review — CareLink{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Digital import review</h1><p>Batch: {{ batch.name }} · Matching and approval (Part 3)</p></div>
+  <div class="actions">
+    <form method="post" action="{% url 'record_migration:run_matching' batch.pk %}" style="display:inline;">{% csrf_token %}<button class="btn ghost" type="submit">Refresh matching</button></form>
+    <a class="btn ghost" href="{% url 'record_migration:upload_spreadsheet' batch.pk %}">Upload / files</a>
+    <a class="btn ghost" href="{% url 'record_migration:dashboard' %}">Dashboard</a>
+  </div>
+</div>
+<div class="badge-verify" role="note">
+  Review each staged record, resolve possible duplicates/conflicts, record a decision, then approve and import approved records only.
+  Names/DOB are suggestions only — never auto-merged. Existing patient information is not overwritten silently.
+</div>
+<div class="stat-row" style="margin-top:12px;">
+  <div class="stat"><div class="n">{{ summary.total }}</div><div class="l">Total spreadsheet rows</div></div>
+  <div class="stat"><div class="n">{{ summary.valid }}</div><div class="l">Valid</div></div>
+  <div class="stat {% if summary.invalid %}warn{% endif %}"><div class="n">{{ summary.invalid }}</div><div class="l">Invalid</div></div>
+  <div class="stat"><div class="n">{{ summary.empty }}</div><div class="l">Empty</div></div>
+  <div class="stat"><div class="n">{{ review_counts.possible_duplicate }}</div><div class="l">Possible duplicates</div></div>
+  <div class="stat"><div class="n">{{ review_counts.ready_for_approval }}</div><div class="l">Ready for approval</div></div>
+  <div class="stat"><div class="n">{{ review_counts.imported }}</div><div class="l">Imported</div></div>
+</div>
+<div class="card tab" data-tab="REVIEW STATUS COUNTS">
+  <p>
+    <strong>New patient:</strong> {{ review_counts.new_patient }} ·
+    <strong>Existing match:</strong> {{ review_counts.existing_match }} ·
+    <strong>Possible duplicate:</strong> {{ review_counts.possible_duplicate }} ·
+    <strong>Needs review:</strong> {{ review_counts.needs_review }} ·
+    <strong>Ready for approval:</strong> {{ review_counts.ready_for_approval }} ·
+    <strong>Rejected:</strong> {{ review_counts.rejected }} ·
+    <strong>Imported:</strong> {{ review_counts.imported }}
+  </p>
+</div>
+<div class="card tab" data-tab="STAGED RECORDS">
+  <form method="get" style="margin-bottom:10px;">
+    <label for="review">Review status:</label>
+    <select name="review" id="review">
+      <option value="">All</option>
+      {% for val,label in review_choices %}<option value="{{ val }}" {% if review_filter == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <label for="status">Validation:</label>
+    <select name="status" id="status">
+      <option value="">All</option>
+      {% for val,label in status_choices %}<option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <button class="btn ghost" type="submit">Filter</button>
+  </form>
+  <table>
+    <tr><th>Row</th><th>Source</th><th>Validation</th><th>Review status</th><th>Decision</th><th>Key mapped values</th><th>Match / notes</th><th></th></tr>
+    {% for r in records %}
+    <tr>
+      <td>{{ r.row_number }}</td>
+      <td>{{ r.source_file.original_filename }}</td>
+      <td><span class="pill {{ r.validation_status|lower }}">{{ r.get_validation_status_display }}</span></td>
+      <td><span class="pill {{ r.review_status|lower }}">{{ r.get_review_status_display }}</span></td>
+      <td>{{ r.get_decision_display }}</td>
+      <td>
+        {% if r.mapped_values.full_name %}<strong>{{ r.mapped_values.full_name }}</strong><br>{% endif %}
+        {{ r.mapped_values.patient_id|default:"" }} {{ r.mapped_values.date_of_birth|default:"" }} {{ r.mapped_values.sex|default:"" }}
+      </td>
+      <td>
+        {% if r.matched_patient %}Selected: {{ r.matched_patient.full_name }} ({{ r.matched_patient.patient_id }})<br>{% endif %}
+        {% if r.conflicts %}<span style="color:var(--amber,#b45309);">Conflicts: {{ r.conflicts|length }}</span>{% elif r.match_candidates %}Candidates: {{ r.match_candidates|length }}{% else %}—{% endif %}
+        {% if r.is_imported %}<br><strong>Imported</strong>{% endif %}
+      </td>
+      <td><a href="{% url 'record_migration:staged_record_detail' batch.pk r.pk %}">Review</a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8" style="color:var(--muted);">No staged records. Upload, map columns, then validate &amp; stage.</td></tr>
+    {% endfor %}
+  </table>
+  <p style="color:var(--muted); font-size:0.85rem; margin-top:8px;">Showing up to 300 records.</p>
+</div>
+{% endblock %}

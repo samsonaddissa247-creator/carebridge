@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Column mapping — CareLink{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Column mapping</h1><p>{{ source_file.original_filename }} · Batch: {{ batch.name }}</p></div>
+  <div class="actions">
+    <a class="btn ghost" href="{% url 'record_migration:spreadsheet_preview' batch.pk source_file.pk %}">Preview</a>
+    <a class="btn ghost" href="{% url 'record_migration:upload_spreadsheet' batch.pk %}">Upload</a>
+  </div>
+</div>
+<div class="badge-verify" role="note">
+  Match spreadsheet columns to CareLink patient fields (based on the actual Patient model). Leave irrelevant columns unmapped.
+  Saving mapping or validating will not create or update patient records; rows are staged for review only.
+</div>
+{% if saved %}<div class="card" style="border-left:4px solid var(--green);"><p>Column mapping saved. You can change it before validation/approval.</p></div>{% endif %}
+<div class="card tab" data-tab="MAP COLUMNS">
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div style="color:var(--red,#b91c1c);">{{ form.non_field_errors }}</div>{% endif %}
+    <table>
+      <tr><th>CareLink field</th><th>Source spreadsheet column</th></tr>
+      {% for field in form %}
+      <tr>
+        <td><label for="{{ field.id_for_label }}">{{ field.label }}</label></td>
+        <td>{{ field }} {{ field.errors }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p style="color:var(--muted); font-size:0.9rem; margin-top:10px;">Required for a valid staged record: Full name, Date of birth, Sex/Gender. Other fields optional.</p>
+    <div class="actions" style="margin-top:12px;">
+      <button class="btn ghost" type="submit" name="save_mapping" value="1">Save mapping</button>
+      <button class="btn primary" type="submit" name="validate_stage" value="1">Validate &amp; stage records</button>
+    </div>
+  </form>
+</div>
+{% if headers %}
+<div class="card tab" data-tab="DETECTED SOURCE COLUMNS">
+  <p><strong>Columns found:</strong> {{ headers|join:", " }}</p>
+</div>
+{% endif %}
+{% endblock %}

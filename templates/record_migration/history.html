@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Migration history — CareLink{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Migration history</h1><p>Read-only batch and audit history · {{ today|date:"d M Y" }}</p></div>
+  <a class="btn ghost" href="{% url 'record_migration:dashboard' %}">Back to migration</a>
+</div>
+<div class="badge-verify" role="note">Audit history is read-only. Filters apply to batch and activity listings; pages show up to 25 batches and 50 activities per page.</div>
+
+<div class="card tab" data-tab="FILTERS">
+  <form method="get" class="report-filter" style="flex-wrap:wrap; gap:8px;">
+    <label>Date from <input type="date" name="date_from" value="{{ filters.date_from }}"></label>
+    <label>Date to <input type="date" name="date_to" value="{{ filters.date_to }}"></label>
+    <label>Migration type
+      <select name="migration_type"><option value="">All</option>{% for v,l in migration_types %}<option value="{{ v }}" {% if filters.migration_type == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    </label>
+    <label>Status
+      <select name="status"><option value="">All</option>{% for v,l in statuses %}<option value="{{ v }}" {% if filters.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    </label>
+    <label>Staff
+      <select name="staff"><option value="">All</option>{% for s in staff_choices %}<option value="{{ s.pk }}" {% if filters.staff == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.get_full_name|default:s.username }}</option>{% endfor %}</select>
+    </label>
+    <label>Outcome
+      <select name="outcome"><option value="">All</option><option value="imported" {% if filters.outcome == "imported" %}selected{% endif %}>Imported</option><option value="rejected" {% if filters.outcome == "rejected" %}selected{% endif %}>Rejected</option><option value="errors" {% if filters.outcome == "errors" %}selected{% endif %}>Errors</option><option value="awaiting" {% if filters.outcome == "awaiting" %}selected{% endif %}>Awaiting review/import</option></select>
+    </label>
+    <button class="btn primary small" type="submit">Apply filters</button>
+    <a class="btn ghost small" href="{% url 'record_migration:history' %}">Clear</a>
+  </form>
+</div>
+
+<div class="card tab" data-tab="BATCH HISTORY">
+  <table>
+    <tr><th>Batch</th><th>Type</th><th>Source</th><th>Created by</th><th>Created</th><th>Status</th><th>Paper files</th><th>Spreadsheets</th><th>Processed</th><th>Imported</th><th></th></tr>
+    {% for batch in batches %}
+    <tr>
+      <td>{{ batch.name }}</td><td>{{ batch.get_migration_type_display }}</td>
+      <td>{{ batch.source_hospital|default:batch.source_department|default:"—" }}</td>
+      <td>{{ batch.created_by.get_full_name|default:batch.created_by.username|default:"Staff account" }}</td>
+      <td>{{ batch.created_at|date:"d M Y, H:i" }}</td><td><span class="pill {{ batch.status|lower }}">{{ batch.get_status_display }}</span></td>
+      <td>{{ batch.document_count }}</td><td>{{ batch.file_count }}</td>
+      <td>{% if batch.migration_type == "DIGITAL" %}{{ batch.staged_count }}{% else %}{{ batch.document_count }}{% endif %}</td>
+      <td>{{ batch.imported_count|default:0 }}</td>
+      <td><a href="{% url 'record_migration:batch_report' batch.pk %}">Report</a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="11" style="color:var(--muted);">No migration batches match the selected filters.</td></tr>
+    {% endfor %}
+  </table>
+  <div class="actions" style="margin-top:8px;">
+    {% if page_obj.has_previous %}<a class="btn ghost small" href="?page={{ page_obj.previous_page_number }}&apage={{ activities_page.number }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&migration_type={{ filters.migration_type }}&status={{ filters.status }}&staff={{ filters.staff }}&outcome={{ filters.outcome }}">Previous batches</a>{% endif %}
+    <span style="color:var(--muted);">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a class="btn ghost small" href="?page={{ page_obj.next_page_number }}&apage={{ activities_page.number }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&migration_type={{ filters.migration_type }}&status={{ filters.status }}&staff={{ filters.staff }}&outcome={{ filters.outcome }}">Next batches</a>{% endif %}
+  </div>
+</div>
+
+<div class="card tab" data-tab="AUDIT ACTIVITY">
+  <table>
+    <tr><th>Action</th><th>Batch</th><th>Document/File/Record</th><th>Staff</th><th>Details</th><th>Time</th></tr>
+    {% for activity in activities %}
+    <tr>
+      <td>{{ activity.action }}</td><td>{{ activity.batch.name }}</td>
+      <td>
+        {% if activity.document %}{{ activity.document.original_filename }}{% elif activity.source_file %}{{ activity.source_file.original_filename }}{% else %}—{% endif %}
+        {% if activity.record_id %}(row {{ activity.record.row_number }}){% endif %}
+      </td>
+      <td>{{ activity.actor.get_full_name|default:activity.actor.username|default:"Staff account" }}</td>
+      <td>{{ activity.details|default:"—" }}</td>
+      <td>{{ activity.created_at|date:"d M Y, H:i" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" style="color:var(--muted);">No migration audit events match the selected filters.</td></tr>
+    {% endfor %}
+  </table>
+  <div class="actions" style="margin-top:8px;">
+    {% if activities_page.has_previous %}<a class="btn ghost small" href="?apage={{ activities_page.previous_page_number }}&page={{ page_obj.number }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&migration_type={{ filters.migration_type }}&status={{ filters.status }}&staff={{ filters.staff }}&outcome={{ filters.outcome }}">Previous activity</a>{% endif %}
+    <span style="color:var(--muted);">Activity page {{ activities_page.number }} of {{ activities_page.paginator.num_pages }}</span>
+    {% if activities_page.has_next %}<a class="btn ghost small" href="?apage={{ activities_page.next_page_number }}&page={{ page_obj.number }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&migration_type={{ filters.migration_type }}&status={{ filters.status }}&staff={{ filters.staff }}&outcome={{ filters.outcome }}">Next activity</a>{% endif %}
+  </div>
+</div>
+{% endblock %}

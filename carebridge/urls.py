@@ -10,6 +10,7 @@ from billing import views as bill_views
 from django.urls import include
 
 urlpatterns = [
+    path("record-migration/", include("record_migration.urls")),
     path("laboratory/", include("laboratory.urls")),
     path("assistant/", include("assistant.urls")),
     re_path(r"^static/(?P<path>.*)$", serve, {"document_root": settings.BASE_DIR / "static"}),

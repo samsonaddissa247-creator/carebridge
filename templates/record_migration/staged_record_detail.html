@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Staged record review — CareLink{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Staged record (row {{ record.row_number }})</h1><p>{{ record.source_file.original_filename }} · {{ batch.name }}</p></div>
+  <div class="actions"><a class="btn ghost" href="{% url 'record_migration:digital_review' batch.pk %}">Back to review</a></div>
+</div>
+
+{% if action_error %}<div class="card" style="border-left:4px solid var(--red,#b91c1c);"><p><strong>Action not completed:</strong> {{ action_error }}</p></div>{% endif %}
+
+<div class="card tab" data-tab="STATUS & IMPORT">
+  <p>
+    <strong>Validation:</strong> <span class="pill {{ record.validation_status|lower }}">{{ record.get_validation_status_display }}</span> &nbsp;
+    <strong>Review status:</strong> <span class="pill {{ record.review_status|lower }}">{{ record.get_review_status_display }}</span>
+  </p>
+  <p><strong>Decision:</strong> {{ record.get_decision_display }}{% if record.decision_reason %} — {{ record.decision_reason }}{% endif %}</p>
+  {% if record.decided_by %}<p><strong>Decided by:</strong> {{ record.decided_by.get_full_name|default:record.decided_by.username }} on {{ record.decided_at|date:"d M Y, H:i" }}</p>{% endif %}
+  {% if record.approved_by %}<p><strong>Approved by:</strong> {{ record.approved_by.get_full_name|default:record.approved_by.username }} on {{ record.approved_at|date:"d M Y, H:i" }}</p>{% endif %}
+  {% if record.is_imported %}<p><strong>Imported:</strong> Yes — patient {{ record.imported_patient.full_name }} ({{ record.imported_patient.patient_id }}) on {{ record.imported_at|date:"d M Y, H:i" }} by {{ record.imported_by.get_full_name|default:record.imported_by.username|default:"Staff" }}</p>{% endif %}
+  {% if record.import_error %}<p style="color:var(--red,#b91c1c);"><strong>Import note/error:</strong> {{ record.import_error }}</p>{% endif %}
+  {% if record.is_duplicate_in_file %}<p><strong>Duplicate in file:</strong> Yes</p>{% endif %}
+  {% if record.validation_errors %}<h3 class="section">Validation errors</h3><ul>{% for e in record.validation_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+  {% if record.conflicts %}<h3 class="section">Conflicts / flags (must be reviewed)</h3><ul>{% for c in record.conflicts %}<li>{{ c }}</li>{% endfor %}</ul>{% endif %}
+
+  <div class="actions" style="margin-top:10px;">
+    {% if not record.is_imported and can_approve %}
+      <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="approve"><button class="btn primary" type="submit">Approve record for import</button></form>
+    {% elif not record.is_imported %}
+      <p style="color:var(--muted);"><strong>Cannot approve yet:</strong> {{ approve_reason|default:"Approval requirements not met." }}</p>
+    {% endif %}
+    {% if not record.is_imported and record.review_status == "READY_FOR_APPROVAL" and record.approved_by %}
+      <form method="post" style="display:inline; margin-left:8px;">{% csrf_token %}<input type="hidden" name="action" value="import"><button class="btn" type="submit">Import approved record</button></form>
+    {% endif %}
+  </div>
+  <p style="color:var(--muted); font-size:0.9rem;">Approval requires validation passed, decision recorded, duplicates/conflicts reviewed, and a separate reviewer when you uploaded the source file. Import never overwrites existing patient data silently.</p>
+</div>
+
+<div class="grid-2">
+  <div class="card tab" data-tab="IMPORTED INFORMATION">
+    <table>
+      <tr><th>CareLink field</th><th>Value</th></tr>
+      {% for k, v in record.mapped_values.items %}
+      <tr><td>{{ k }}</td><td>{{ v|default:"—" }}</td></tr>
+      {% empty %}<tr><td colspan="2" style="color:var(--muted);">No mapped values.</td></tr>{% endfor %}
+    </table>
+  </div>
+  <div class="card tab" data-tab="ORIGINAL SOURCE VALUES">
+    <h3 class="section">Original source values</h3>
+    <table>
+      <tr><th>Source column</th><th>Value</th></tr>
+      {% for k, v in record.source_values.items %}
+      <tr><td>{{ k }}</td><td>{{ v|default:"—" }}</td></tr>
+      {% empty %}<tr><td colspan="2" style="color:var(--muted);">No source values.</td></tr>{% endfor %}
+    </table>
+  </div>
+</div>
+
+<div class="card tab" data-tab="POSSIBLE MATCHING PATIENTS">
+  <p style="color:var(--muted);">Suggestions only. Exact hospital patient number matches are reliable identifiers; name/date-of-birth matches require human review and never trigger automatic merging.</p>
+  <table>
+    <tr><th>Patient</th><th>Patient number</th><th>DOB</th><th>Sex</th><th>Match reason</th><th>Select</th></tr>
+    {% for c in candidate_patients %}
+    <tr>
+      <td>{{ c.patient.full_name }}</td>
+      <td>{{ c.patient.patient_id }}</td>
+      <td>{{ c.patient.date_of_birth|date:"Y-m-d" }}</td>
+      <td>{{ c.patient.get_sex_display }}</td>
+      <td>{{ c.reason }} {% if c.strength == "exact" %}<strong>(reliable)</strong>{% else %}(suggested){% endif %}</td>
+      <td>
+        {% if not record.is_imported %}
+        <button type="button" class="btn ghost" onclick="document.getElementById('id_decision').value='LINK_EXISTING';document.getElementById('id_matched_patient_id').value='{{ c.patient.pk }}';">Select this patient</button>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" style="color:var(--muted);">No existing patient matches suggested. You may mark this as a new patient if appropriate.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card tab" data-tab="REVIEW DECISION">
+  {% if record.is_imported %}
+    <p>This record has been imported and cannot be changed.</p>
+  {% else %}
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save_decision">
+    {{ decision_form.matched_patient_id }}
+    <div class="field"><label for="id_decision">Decision</label>{{ decision_form.decision }}{{ decision_form.decision.errors }}</div>
+    <div class="field"><label>Selected existing patient (ID)</label><p class="mono" id="selected-patient-label">{% if record.matched_patient %}{{ record.matched_patient.full_name }} ({{ record.matched_patient.patient_id }}){% else %}None{% endif %}</p></div>
+    <div class="field"><label for="id_reason">Reason (required for reject/flag)</label>{{ decision_form.reason }}{{ decision_form.reason.errors }}</div>
+    {% if decision_form.non_field_errors %}<div style="color:var(--red,#b91c1c);">{{ decision_form.non_field_errors }}</div>{% endif %}
+    <div class="actions">
+      <button class="btn primary" type="submit">Save decision</button>
+      <button type="button" class="btn ghost" onclick="document.getElementById('id_decision').value='CREATE_NEW';document.getElementById('id_matched_patient_id').value='';">Mark as new patient</button>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

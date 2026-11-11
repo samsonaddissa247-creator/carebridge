@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Patient records migration — CareLink{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Patient records migration</h1><p>Manage and monitor paper and digital patient record migration.</p></div>
+  <a class="btn primary" href="{% url 'record_migration:create_batch' %}">Create migration batch</a>
+</div>
+<div class="badge-verify" role="note">
+  Statistics are calculated from migration database records. Uploaded clinical documents are stored privately and served only to authorised staff. No patient data is sent to external AI services.
+</div>
+<div class="stat-row" style="margin-top:16px;">
+  <div class="stat"><div class="n">{{ total_batches }}</div><div class="l">Total migration batches</div></div>
+  <div class="stat"><div class="n">{{ total_files }}</div><div class="l">Total uploaded files</div></div>
+  <div class="stat"><div class="n">{{ total_records_processed }}</div><div class="l">Total records processed</div></div>
+  <div class="stat"><div class="n">{{ successfully_imported }}</div><div class="l">Successfully imported</div></div>
+  <div class="stat"><div class="n">{{ records_awaiting_review }}</div><div class="l">Records awaiting review</div></div>
+  <div class="stat"><div class="n">{{ rejected_records }}</div><div class="l">Rejected records</div></div>
+  <div class="stat {% if records_with_errors %}warn{% endif %}"><div class="n">{{ records_with_errors }}</div><div class="l">Records with errors</div></div>
+  <div class="stat"><div class="n">{{ possible_duplicates }}</div><div class="l">Possible duplicates</div></div>
+</div>
+<div class="card tab" data-tab="RECENT MIGRATION ACTIVITY">
+  <h3 class="section">Recent batches and activity</h3>
+  <table>
+    <tr><th>Batch name</th><th>Migration type</th><th>Staff responsible</th><th>Date created</th><th>Current status</th><th>Files</th><th>Processed</th><th></th></tr>
+    {% for batch in batches %}
+    <tr>
+      <td>{{ batch.name }}</td>
+      <td>{{ batch.get_migration_type_display }}</td>
+      <td>{{ batch.created_by.get_full_name|default:batch.created_by.username|default:"Staff account" }}</td>
+      <td>{{ batch.created_at|date:"d M Y, H:i" }}</td>
+      <td><span class="pill {{ batch.status|lower }}">{{ batch.get_status_display }}</span></td>
+      <td>{{ batch.document_count|add:batch.file_count }}</td>
+      <td>{% if batch.migration_type == "DIGITAL" %}{{ batch.staged_count }}{% else %}{{ batch.document_count }}{% endif %}</td>
+      <td>
+        <a href="{% url 'record_migration:batch_report' batch.pk %}">Report</a>
+        {% if batch.migration_type == "PAPER" %}
+          {% if batch.status == "DRAFT" or batch.status == "UPLOADED" %} · <a href="{% url 'record_migration:upload_document' batch.pk %}">Upload</a>{% endif %}
+        {% else %}
+          · <a href="{% url 'record_migration:upload_spreadsheet' batch.pk %}">Files</a>
+          {% if batch.staged_count %} · <a href="{% url 'record_migration:digital_review' batch.pk %}">Review</a>{% endif %}
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8" style="color:var(--muted);">No migration batches have been created.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+<div class="card tab" data-tab="RECENT AUDIT ACTIVITY">
+  <h3 class="section">Recent migration actions</h3>
+  <table>
+    <tr><th>Action</th><th>Batch</th><th>Staff</th><th>Time</th></tr>
+    {% for activity in recent_activities %}
+    <tr>
+      <td>{{ activity.action }}</td>
+      <td>{{ activity.batch.name }}</td>
+      <td>{{ activity.actor.get_full_name|default:activity.actor.username|default:"Staff account" }}</td>
+      <td>{{ activity.created_at|date:"d M Y, H:i" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4" style="color:var(--muted);">No migration activity recorded.</td></tr>
+    {% endfor %}
+  </table>
+  <div class="actions"><a class="btn ghost" href="{% url 'record_migration:history' %}">View migration history</a></div>
+</div>
+{% endblock %}

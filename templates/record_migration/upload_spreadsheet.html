@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Upload digital records — CareLink{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Upload digital records</h1><p>Batch: {{ batch.name }} · {{ batch.get_status_display }}</p></div>
+  <a class="btn ghost" href="{% url 'record_migration:dashboard' %}">Back to migration</a>
+</div>
+<div class="badge-verify" role="note">
+  Upload a CSV (.csv) or Excel (.xlsx) file (max 5 MB, {{ 500 }} data rows). Files are stored privately and treated as untrusted data.
+  Uploading does not create or update patient records; records are staged for review after mapping and validation.
+</div>
+<div class="card tab" data-tab="UPLOAD SPREADSHEET">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="field">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+      {{ field.errors }}
+    </div>
+    {% endfor %}
+    {% if upload_error %}<p style="color:var(--red,#b91c1c);">{{ upload_error }}</p>{% endif %}
+    <button class="btn primary" type="submit">Upload spreadsheet</button>
+  </form>
+</div>
+<div class="card tab" data-tab="UPLOADED FILES">
+  <h3 class="section">Files in this batch</h3>
+  <table>
+    <tr><th>File name</th><th>Type</th><th>Uploaded</th><th>Data rows</th><th>Uploaded by</th><th>Actions</th></tr>
+    {% for f in existing_files %}
+    <tr>
+      <td>{{ f.original_filename }}</td>
+      <td>{{ f.get_file_type_display }}</td>
+      <td>{{ f.created_at|date:"d M Y, H:i" }}</td>
+      <td>{{ f.row_count }}</td>
+      <td>{{ f.uploaded_by.get_full_name|default:f.uploaded_by.username|default:"Staff account" }}</td>
+      <td>
+        <a href="{% url 'record_migration:spreadsheet_preview' batch.pk f.pk %}">Preview</a> ·
+        <a href="{% url 'record_migration:column_mapping' batch.pk f.pk %}">Map columns</a>
+        {% if batch.status == "DRAFT" %}
+          · <form method="post" action="{% url 'record_migration:remove_spreadsheet' batch.pk f.pk %}" style="display:inline;" onsubmit="return confirm('Remove this file from the draft batch?');">{% csrf_token %}<button class="link-btn" type="submit">Remove</button></form>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" style="color:var(--muted);">No spreadsheet files uploaded yet.</td></tr>
+    {% endfor %}
+  </table>
+  {% if batch.records.exists %}
+  <div class="actions" style="margin-top:12px;"><a class="btn ghost" href="{% url 'record_migration:digital_review' batch.pk %}">View staged records</a></div>
+  {% endif %}
+</div>
+{% endblock %}

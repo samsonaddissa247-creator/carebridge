@@ -76,6 +76,11 @@ def patient_detail(request, pk):
     medical_history = patient.medical_histories.order_by("-updated_at").first() if show_clinical_data else None
     consultations = patient.consultations.select_related("doctor").all() if show_clinical_data else []
     vital_signs = patient.vital_signs.select_related("recorded_by").all() if show_clinical_data else []
+    migrated_documents = (
+        patient.migration_documents.select_related("batch").order_by("-created_at")
+        if show_clinical_data
+        else []
+    )
     return render(
         request,
         "patients/detail.html",
@@ -84,6 +89,7 @@ def patient_detail(request, pk):
             "medical_history": medical_history,
             "consultations": consultations,
             "vital_signs": vital_signs,
+            "migrated_documents": migrated_documents,
             "show_clinical_data": show_clinical_data,
         },
     )

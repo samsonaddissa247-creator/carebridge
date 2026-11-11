@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "assistant",
     "billing",
     "core",
+    "record_migration",
 ]
 
 MIDDLEWARE = [
@@ -127,6 +128,7 @@ X_FRAME_OPTIONS = "DENY"
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+MEDIA_ROOT = BASE_DIR / "private_media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

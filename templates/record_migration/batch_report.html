@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Migration batch report — CareLink{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Migration batch report</h1><p>{{ batch.name }} · <span class="pill {{ batch.status|lower }}">{{ batch.get_status_display }}</span></p></div>
+  <div class="actions">
+    <a class="btn ghost" href="{% url 'record_migration:download_error_report' batch.pk %}">Download error report (CSV)</a>
+    <a class="btn ghost" href="{% url 'record_migration:dashboard' %}">Dashboard</a>
+  </div>
+</div>
+<div class="grid-2">
+  <div class="card tab" data-tab="BATCH DETAILS">
+    <p><strong>Batch name:</strong> {{ batch.name }}</p>
+    <p><strong>Migration type:</strong> {{ batch.get_migration_type_display }}</p>
+    <p><strong>Source hospital/department:</strong> {{ batch.source_hospital|default:"—" }}{% if batch.source_department %} / {{ batch.source_department }}{% endif %}</p>
+    <p><strong>Source system:</strong> {{ batch.source_system|default:"—" }}</p>
+    <p><strong>Created date:</strong> {{ batch.created_at|date:"d M Y, H:i" }}</p>
+    <p><strong>Completed date:</strong> {{ report.completed_at|date:"d M Y, H:i"|default:"—" }}</p>
+    <p><strong>Created by:</strong> {{ batch.created_by.get_full_name|default:batch.created_by.username|default:"Staff account" }}</p>
+    <p><strong>Final status:</strong> <span class="pill {{ batch.status|lower }}">{{ batch.get_status_display }}</span></p>
+  </div>
+  <div class="card tab" data-tab="REVIEWERS & APPROVERS">
+    <h3 class="section">Staff who reviewed or approved</h3>
+    <ul>
+      {% for r in report.reviewers %}
+      <li>{{ r.get_full_name|default:r.username }} ({{ r.get_role_display }})</li>
+      {% empty %}
+      <li style="color:var(--muted);">No review/approval actions recorded.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+<div class="stat-row" style="margin-top:12px;">
+  <div class="stat"><div class="n">{{ report.total_files }}</div><div class="l">Total files uploaded</div></div>
+  <div class="stat"><div class="n">{{ report.total_records_processed }}</div><div class="l">Total records processed</div></div>
+  <div class="stat"><div class="n">{{ report.imported }}</div><div class="l">Successfully imported</div></div>
+  <div class="stat"><div class="n">{{ report.rejected }}</div><div class="l">Rejected records</div></div>
+  <div class="stat {% if report.invalid %}warn{% endif %}"><div class="n">{{ report.invalid }}</div><div class="l">Invalid records</div></div>
+  <div class="stat"><div class="n">{{ report.possible_duplicates }}</div><div class="l">Possible duplicates</div></div>
+  <div class="stat"><div class="n">{{ report.awaiting_review }}</div><div class="l">Awaiting review</div></div>
+</div>
+<div class="card tab" data-tab="ERROR REPORTING">
+  <p style="color:var(--muted);">Shows row-level errors, duplicates and import issues. Downloadable CSV omits unnecessary patient information.</p>
+  <table>
+    <tr><th>Spreadsheet row</th><th>Source file</th><th>Error type</th><th>Description</th><th>Review status</th><th>Resolution</th></tr>
+    {% for e in errors %}
+    <tr>
+      <td>{{ e.row_number|default:"—" }}</td>
+      <td>{{ e.source_file|default:"—" }}</td>
+      <td>{{ e.error_type }}</td>
+      <td>{{ e.description }}</td>
+      <td>{{ e.review_status }}</td>
+      <td>{{ e.resolution_status }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" style="color:var(--muted);">No errors or duplicate/import issues recorded for this batch.</td></tr>
+    {% endfor %}
+  </table>
+  {% if error_total > errors|length %}<p style="color:var(--muted); font-size:0.85rem;">Showing first {{ errors|length }} of {{ error_total }} issues. Download CSV for full list.</p>{% endif %}
+</div>
+{% endblock %}

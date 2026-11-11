@@ -278,6 +278,7 @@ development/capstone demonstration requires no cloud hosting.
 ## Known limitations
 
 - This is a single-facility MVP, not a validated production clinical system.
+- Patient Records Migration is designed for assisted, auditable migration (upload, staging, human review, approval, controlled import). It is not a certified data-migration or records-compliance solution.
 - Ollama's safety filter is pattern-based and cannot guarantee detection of all
   clinical or identifying prompts.
 - No live model response was generated during this review because the local
@@ -288,6 +289,73 @@ development/capstone demonstration requires no cloud hosting.
   deploying institution.
 - Historical status-at-time reports, formal retention automation, multi-site
   operation and institutional compliance review are outside this MVP.
+
+## Patient Records Migration module
+
+The `record_migration` app supports assisted migration of historical records into CareLink while preserving existing modules, models and the current UI style.
+
+### What it does
+
+- **Paper records migration:** upload scanned PDF/JPG/PNG documents and attach them to an existing `Patient` profile with original document date, source and description. Original files are preserved in private storage and served only via authenticated, permission-checked download views.
+- **Digital records migration:** upload CSV/XLSX spreadsheets, preview rows/columns, map source columns to real `Patient` fields, validate and stage rows for review. Staged rows never become `Patient` records until explicitly approved and imported.
+- **Matching and approval:** suggests existing-patient matches using reliable identifiers (hospital patient number) and name/DOB as review-only suggestions (never auto-merged). Staff can select/link existing patient, mark as new patient, flag for investigation, or reject with reason. Conflicts/possible duplicates require human review; existing patient data is not silently overwritten.
+- **Safe import:** approved records only; transactional import with locking/guards prevents duplicate imports and partial creation on failure; import outcomes and decisions are audited.
+- **Reporting and history:** migration dashboard statistics (from database records), per-batch reports, row-level error reporting with CSV download (no unnecessary patient information), and read-only migration history/audit with filters and pagination.
+
+### Supported file formats
+
+- Paper: `.pdf`, `.jpg`, `.jpeg`, `.png` (content-validated, size-limited, private storage).
+- Digital spreadsheets: `.csv` (UTF-8 text) and `.xlsx` (Excel), with content/format validation, size and row-count limits. Spreadsheet content is treated as untrusted data.
+
+### Required permissions
+
+- Migration dashboard, batches, uploads, preview/mapping/review/approval/import, reports and history: **Hospital Administrator** and **Doctor** only (server-side enforced). Doctors are scoped to migration batches they created (consistent with existing access patterns); administrators can access migration batches.
+- Receptionists and laboratory technicians do not have migration access; receptionists must not access private clinical migrated documents.
+- Migrated clinical document downloads/listing: **Admin/Doctor** only, with doctor patient-access checks (`patients.permissions.doctor_patient_queryset`). Downloads are private attachments (`X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store`) and not exposed as public media URLs.
+- Approval requires validation passed, an explicit decision, no unresolved conflicts/possible duplicates, and a **separate reviewer** from the uploader of the source spreadsheet file. Import requires prior approval.
+- Audit history is read-only in the UI (no edit/delete actions).
+
+### Workflow
+
+#### Create a migration batch
+1. Sign in as Admin or Doctor and open **Records migration**.
+2. Select **Create migration batch**.
+3. Enter batch name, migration type (**Paper** or **Digital**), source hospital/department/system (as applicable), description and save. Batch is created in Draft and the responsible staff member and timestamp are recorded.
+
+#### Paper records migration
+1. Create/open a **Paper** batch and upload a scanned PDF/JPG/PNG.
+2. Select an existing patient, provide original document date, source and description.
+3. The original file is stored unchanged in private storage and attached to the patient profile; upload is audited. Authorised users can view/download via protected endpoints and the patient record.
+
+#### Digital records migration
+1. Create/open a **Digital** batch and upload a CSV/XLSX file (private storage).
+2. Preview column headings and sample rows, totals and empty/invalid hints (no import).
+3. Map source columns to CareLink `Patient` fields (`patient_id`, `full_name`, `date_of_birth`, `sex`, `phone_number`, `next_of_kin`, `allergies`, `chronic_conditions`, `notes`) as available; save/change mapping before validation.
+4. Validate and stage rows: rows are stored as `MigrationRecord` staging records with source/mapped values, row number, validation status/errors and in-file duplicate flags. **No `Patient` records are created or updated at staging.**
+5. Review/match: inspect matches/suggestions, record decision (link existing patient, mark new patient, flag, or reject with reason), resolve possible duplicates/conflicts.
+6. Approve (separate reviewer) and import approved records only: link to selected existing patient or create a new `Patient` safely. Conflicts block import; existing data is not silently overwritten; repeated import of the same staged record is prevented.
+
+#### View migration reports and history
+- **Dashboard:** totals for batches/files/processed/imported/awaiting/rejected/errors/possible duplicates and recent activity (from DB records).
+- **Batch report:** batch details, source, dates, creator/reviewers-approvers, file/record counts, imported/rejected/invalid/duplicates/awaiting, final status, and error summary. Error details downloadable as CSV (row number, error type/description, resolution status; excludes unnecessary patient information).
+- **History:** read-only batches and audit activities with filters (date range, migration type, batch status, staff member, import outcome) and pagination.
+
+### File storage and privacy considerations
+
+- Uploaded migration files are stored under `MEDIA_ROOT/private_media` (no public `MEDIA_URL` serving). Access is mediated by authenticated, role/permission-checked views.
+- Validate file type/content, enforce size/row limits, use safe filenames/UUID storage paths, and treat spreadsheet content as untrusted.
+- No uploaded patient records/spreadsheet contents are sent to the AI assistant or external AI services.
+- On Vercel/serverless setups without persistent private storage, private uploads are blocked by design; use a persistent host/storage and PostgreSQL for deployments.
+- Protect the database, storage and backups per institutional policy; keep `SECRET_KEY`/credentials out of Git. Not certified as legally/clinically compliant without institutional review.
+
+### Known limitations (migration module)
+
+- Migration is assisted and requires human review/approval; matching suggestions (especially name/DOB) are not definitive and never auto-merge.
+- Separate-reviewer rule prevents the spreadsheet uploader from approving their own staged records; environments with only one authorised reviewer for a batch may need an additional authorised user.
+- New-patient import guards against duplicate patient number/core identity; `Patient.patient_id` remains system-generated (source patient number retained in staged data, not forced as CareLink ID).
+- Doctor migration access is batch-creator scoped (consistent with current app behavior).
+- `record_migration` migrations (0001–0003) may be unapplied in an existing local DB until `manage.py migrate` is run; apply to the target database before use.
+- No OCR, no automatic merge/overwrite, no external AI processing, and no production/compliance certification.
 
 ## Capstone demonstration plan
 

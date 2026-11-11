@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Spreadsheet preview — CareLink{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Spreadsheet preview</h1><p>{{ source_file.original_filename }} · Batch: {{ batch.name }}</p></div>
+  <div class="actions">
+    <a class="btn ghost" href="{% url 'record_migration:upload_spreadsheet' batch.pk %}">Back to upload</a>
+    <a class="btn primary" href="{% url 'record_migration:column_mapping' batch.pk source_file.pk %}">Map columns</a>
+  </div>
+</div>
+<div class="stat-row" style="margin-top:8px;">
+  <div class="stat"><div class="n">{{ total_rows }}</div><div class="l">Total data records</div></div>
+  <div class="stat"><div class="n">{{ headers|length }}</div><div class="l">Columns</div></div>
+  <div class="stat {% if empty_field_count %}warn{% endif %}"><div class="n">{{ empty_field_count }}</div><div class="l">Empty field values</div></div>
+</div>
+{% if read_error %}<div class="badge-verify" role="alert">{{ read_error }}</div>{% endif %}
+<div class="card tab" data-tab="PREVIEW (FIRST 20 ROWS)">
+  <p style="color:var(--muted);">This is a preview only. No records are imported or created as patients at this stage.</p>
+  <div style="overflow:auto;">
+  <table>
+    <tr>{% for h in headers %}<th>{{ h }}</th>{% endfor %}<th>Preview notes</th></tr>
+    {% for row in preview_rows %}
+    <tr>
+      {% for h in headers %}
+        <td>{% for k, v in row.items %}{% if k == h %}{{ v|default:"—" }}{% endif %}{% endfor %}</td>
+      {% endfor %}
+      <td>{% if row.preview_issues %}<span style="color:var(--amber,#b45309);">{{ row.preview_issues|join:", " }}</span>{% else %}—{% endif %}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="{{ headers|length|add:1 }}" style="color:var(--muted);">No data rows found.</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>
+{% endblock %}

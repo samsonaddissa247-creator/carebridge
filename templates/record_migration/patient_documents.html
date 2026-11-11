@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Migrated patient documents — CareLink{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div><h1>Migrated documents</h1><p>Patient record {{ patient_id }}</p></div>
+  <a class="btn ghost" href="{% url 'patient_detail' patient_id %}">Back to patient</a>
+</div>
+<div class="card tab" data-tab="PRIVATE CLINICAL DOCUMENTS">
+  <table>
+    <tr><th>Document</th><th>Original date</th><th>Source</th><th>Batch</th><th>Uploaded</th><th></th></tr>
+    {% for document in documents %}
+    <tr>
+      <td>{{ document.original_filename }}</td>
+      <td>{{ document.document_date|date:"d M Y" }}</td>
+      <td>{{ document.source }}</td>
+      <td>{{ document.batch.name }}</td>
+      <td>{{ document.created_at|date:"d M Y, H:i" }}</td>
+      <td><a href="{% url 'record_migration:download_document' document.pk %}">Download securely</a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" style="color:var(--muted);">No migrated documents attached.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

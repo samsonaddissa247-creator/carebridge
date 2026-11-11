@@ -37,9 +37,26 @@
   {% endif %}
   {% if user.role == "ADMIN" or user.role == "DOCTOR" %}
     <a class="btn ghost" href="{% url 'medical_record_history' patient.pk %}">View full medical record</a>
+    <a class="btn ghost" href="{% url 'record_migration:patient_documents' patient.pk %}">View migrated documents</a>
     <a class="btn ghost" href="{% url 'add_medical_history' patient.pk %}">Add medical history</a>
     <a class="btn ghost" href="{% url 'add_consultation' patient.pk %}">Add consultation</a>
     <a class="btn ghost" href="{% url 'add_vital_signs' patient.pk %}">Record vital signs</a>
   {% endif %}
 </div>
+{% if show_clinical_data and migrated_documents %}
+<div class="card tab" data-tab="MIGRATED DOCUMENTS">
+  <h3 class="section">Scanned historical records</h3>
+  <table>
+    <tr><th>Document</th><th>Original date</th><th>Source</th><th></th></tr>
+    {% for document in migrated_documents %}
+    <tr>
+      <td>{{ document.original_filename }}</td>
+      <td>{{ document.document_date|date:"d M Y" }}</td>
+      <td>{{ document.source }}</td>
+      <td><a href="{% url 'record_migration:download_document' document.pk %}">Download securely</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
 {% endblock %}
