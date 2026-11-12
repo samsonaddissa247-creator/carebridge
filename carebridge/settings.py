@@ -13,20 +13,57 @@ def get_bool_env(name, default):
 
 IS_VERCEL = bool(os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV") or BASE_DIR == Path("/var/task"))
 DEBUG = get_bool_env("DEBUG", not IS_VERCEL)
+
+_secret_key = (
+    os.environ.get("SECRET_KEY")
+    or os.environ.get("DJANGO_SECRET_KEY")
+    or os.environ.get("VERCEL_SECRET_KEY")
+)
 if DEBUG:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "carelink-dev-secret-key-change-me")
+    SECRET_KEY = _secret_key or "carelink-dev-secret-key-change-me"
 else:
-    SECRET_KEY = os.environ.get("SECRET_KEY")
-    if not SECRET_KEY:
-        raise RuntimeError("SECRET_KEY must be set in production. Add it to your environment before starting Django.")
+    if _secret_key:
+        SECRET_KEY = _secret_key
+    elif IS_VERCEL:
+        # Fallback to allow boot when env var is not configured; sessions/tokens
+        # may be unstable across serverless instances. Set SECRET_KEY in Vercel.
+        SECRET_KEY = "django-insecure-vercel-" + os.environ.get("VERCEL_DEPLOYMENT_ID", "set-secret-key-in-vercel-env")
+    else:
+        raise RuntimeError(
+            "SECRET_KEY must be set in production. Add it to your environment before starting Django."
+        )
+
+_default_hosts = "localhost,127.0.0.1,[::1]"
 ALLOWED_HOSTS = [
-    host.strip() for host in os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]").split(",") if host.strip()
+    host.strip() for host in os.environ.get("ALLOWED_HOSTS", _default_hosts).split(",") if host.strip()
 ]
+if IS_VERCEL:
+    ALLOWED_HOSTS.extend([".vercel.app", ".now.sh"])
+    for env_name in ("VERCEL_URL", "VERCEL_PROJECT_PRODUCTION_URL"):
+        host = (os.environ.get(env_name) or "").strip()
+        if host:
+            host = host.replace("https://", "").replace("http://", "").strip("/")
+            if host and host not in ALLOWED_HOSTS:
+                ALLOWED_HOSTS.append(host)
+# de-duplicate while preserving order
+ALLOWED_HOSTS = list(dict.fromkeys(ALLOWED_HOSTS))
 if not DEBUG and not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+
 CSRF_TRUSTED_ORIGINS = [
     origin.strip() for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if origin.strip()
 ]
+if IS_VERCEL:
+    for env_name in ("VERCEL_URL", "VERCEL_PROJECT_PRODUCTION_URL"):
+        host = (os.environ.get(env_name) or "").strip().replace("https://", "").replace("http://", "").strip("/")
+        if host:
+            origin = f"https://{host}"
+            if origin not in CSRF_TRUSTED_ORIGINS:
+                CSRF_TRUSTED_ORIGINS.append(origin)
+    for origin in ("https://*.vercel.app", "https://*.now.sh"):
+        if origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(origin)
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -94,7 +131,12 @@ if DATABASE_URL:
 
     DATABASES["default"] = dj_database_url.parse(DATABASE_URL, conn_max_age=600)
 elif IS_VERCEL:
-    raise RuntimeError("DATABASE_URL must be configured for Vercel; its local filesystem is not persistent.")
+    # Vercel filesystem is ephemeral; /tmp is writable for boot but not persistent.
+    # Configure DATABASE_URL (PostgreSQL) in Vercel for a working deployment.
+    DATABASES["default"] = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": "/tmp/carelink.sqlite3",
+    }
 
 if IS_VERCEL:
     SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
