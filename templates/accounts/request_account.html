@@ -19,15 +19,16 @@
     {% endif %}
     <form method="post">
       {% csrf_token %}
+      {{ form.non_field_errors }}
       <div class="form-grid">
-        <div class="field"><label>First name</label>{{ form.first_name }}</div>
-        <div class="field"><label>Last name</label>{{ form.last_name }}</div>
+        <div class="field"><label>First name</label>{{ form.first_name }}{{ form.first_name.errors }}</div>
+        <div class="field"><label>Last name</label>{{ form.last_name }}{{ form.last_name.errors }}</div>
         <div class="field"><label>Username</label>{{ form.username }}{{ form.username.errors }}</div>
-        <div class="field"><label>Email</label>{{ form.email }}</div>
-        <div class="field"><label>Role</label>{{ form.role }}</div>
-        <div class="field"><label>Department</label>{{ form.department }}</div>
+        <div class="field"><label>Email</label>{{ form.email }}{{ form.email.errors }}</div>
+        <div class="field"><label>Role</label>{{ form.role }}{{ form.role.errors }}</div>
+        <div class="field"><label>Department</label>{{ form.department }}{{ form.department.errors }}</div>
         <div class="field full"><label>Staff ID / employee number</label>{{ form.staff_id }}{{ form.staff_id.errors }}</div>
-        <div class="field full"><label>Password</label>{{ form.password }}</div>
+        <div class="field full"><label>Password</label>{{ form.password }}{{ form.password.errors }}<small>Use at least 8 characters and avoid common or all-numeric passwords.</small></div>
       </div>
       <button class="btn primary" style="width:100%;padding:12px;" type="submit">Submit Request</button>
     </form>
