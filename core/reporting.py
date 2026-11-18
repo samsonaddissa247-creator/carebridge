@@ -1,4 +1,5 @@
-from datetime import datetime, time, timedelta
+import calendar
+from datetime import date, datetime, time, timedelta
 
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncDate
@@ -224,6 +225,53 @@ def _daily_chart_data(queryset, field, start_day, end_day):
     return _chart_rows(days, "report_day")
 
 
+def _add_months(source_date, months):
+    month_index = source_date.month - 1 + months
+    year = source_date.year + month_index // 12
+    month = month_index % 12 + 1
+    last_day = calendar.monthrange(year, month)[1]
+    return date(year, month, min(source_date.day, last_day))
+
+
+def _monthly_calendar_context(appointments_qs, month_start, month_end, selected_date, today):
+    month_start_dt, month_end_dt = _period_bounds(month_start, month_end)
+    records = (
+        appointments_qs.filter(scheduled_at__gte=month_start_dt, scheduled_at__lt=month_end_dt)
+        .annotate(report_day=TruncDate("scheduled_at"))
+        .values("report_day")
+        .annotate(total=Count("pk"))
+    )
+    counts_by_day = {row["report_day"]: row["total"] for row in records}
+
+    cal = calendar.Calendar(firstweekday=0)  # Monday
+    weeks = []
+    for week_dates in cal.monthdatescalendar(month_start.year, month_start.month):
+        week_cells = []
+        for day in week_dates:
+            week_cells.append(
+                {
+                    "date": day,
+                    "day": day.day,
+                    "in_month": day.month == month_start.month,
+                    "is_today": day == today,
+                    "is_selected": day == selected_date,
+                    "count": counts_by_day.get(day, 0) if day.month == month_start.month else 0,
+                }
+            )
+        weeks.append(week_cells)
+
+    prev_month_date = _add_months(month_start, -1)
+    next_month_date = _add_months(month_start, 1)
+    return {
+        "weeks": weeks,
+        "month_label": month_start.strftime("%B %Y"),
+        "prev_date": prev_month_date,
+        "next_date": next_month_date,
+        "today_date": today,
+        "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    }
+
+
 def build_reports_context(user, selected_date):
     week_start = selected_date - timedelta(days=selected_date.weekday())
     week_end = week_start + timedelta(days=6)
@@ -244,6 +292,7 @@ def build_reports_context(user, selected_date):
 
     context = {
         "selected_date": selected_date,
+        "today": timezone.localdate(),
         "can_view_admin_reports": can_view_admin_reports,
         "can_view_reception_reports": can_view_reception_reports,
         "can_view_doctor_reports": can_view_doctor_reports,
@@ -256,6 +305,10 @@ def build_reports_context(user, selected_date):
         daily = appointments.filter(scheduled_at__gte=day_start, scheduled_at__lt=day_end)
         weekly = appointments.filter(scheduled_at__gte=week_start_dt, scheduled_at__lt=week_end_dt)
         monthly = appointments.filter(scheduled_at__gte=month_start_dt, scheduled_at__lt=month_end_dt)
+        selected_day_appointments = (
+            daily.select_related("patient", "doctor")
+            .order_by("scheduled_at")
+        )
         context.update(
             daily_appointments=_appointment_status_rows(daily),
             daily_appointments_total=daily.count(),
@@ -263,6 +316,10 @@ def build_reports_context(user, selected_date):
             monthly_appointments_total=monthly.count(),
             weekly_appointment_chart=_daily_chart_data(appointments, "scheduled_at", week_start, week_end),
             monthly_appointment_chart=_daily_chart_data(appointments, "scheduled_at", month_start, month_end),
+            monthly_calendar=_monthly_calendar_context(
+                appointments, month_start, month_end, selected_date, timezone.localdate()
+            ),
+            selected_day_appointments=selected_day_appointments,
         )
 
     if can_view_admin_reports or can_view_reception_reports:

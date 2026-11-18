@@ -20,7 +20,7 @@ a{color:inherit;text-decoration:none;}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;color:#CFE0DC;font-size:13.5px;}
 .nav-item:hover{background:rgba(255,255,255,.06);}
 .nav-item.on{background:rgba(255,255,255,.1);color:#fff;font-weight:600;}
-.nav-item .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;flex:none;}
+.nav-item .dot{width:6px;height:6px;flex:none;visibility:hidden;}
 .sidebar-foot{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:#9FB8B3;}
 .sidebar-foot a{display:block;margin-top:8px;color:#F3C89A;font-weight:600;}
 .sidebar-foot .sidebar-logout{display:block;margin-top:8px;padding:0;border:0;background:transparent;color:#F3C89A;font:inherit;font-weight:600;cursor:pointer;}
@@ -136,6 +136,32 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{
 .monthly-bar{height:170px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;min-width:0;}
 .monthly-bar span{width:min(70%,24px);min-height:2px;background:var(--primary);border-radius:4px 4px 0 0;}
 .monthly-bar small{font-size:9px;color:var(--muted);}
+
+/* Appointments by day - monthly calendar */
+.appt-calendar{border:1px solid var(--border);border-radius:10px;padding:12px;background:#fff;max-width:100%;}
+.appt-calendar-nav{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.cal-month-label{flex:1;text-align:center;font-family:'Sora',Arial,sans-serif;font-weight:600;color:#064E3B;font-size:15px;min-width:140px;}
+.cal-nav-btn{min-width:36px;padding:6px 10px;line-height:1;color:#064E3B;}
+.cal-today-btn{margin-left:auto;background:#087F5B;color:#fff;border:none;}
+.cal-today-btn:hover{background:#064E3B;color:#fff;}
+.appt-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;}
+.cal-weekdays{margin-bottom:4px;}
+.cal-weekday{text-align:center;font-size:11px;font-weight:600;color:#064E3B;text-transform:uppercase;letter-spacing:.03em;padding:6px 2px;background:#F4E7A1;border-radius:6px;}
+.cal-cell{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:44px;padding:4px 2px;border:1px solid #E6ECEA;border-radius:8px;background:#fff;color:var(--text);text-decoration:none;position:relative;}
+.cal-cell:hover{border-color:#087F5B;background:#F3FAF8;}
+.cal-cell.is-outside{background:#F7F9F8;color:#9AA7A3;}
+.cal-cell.is-outside .cal-daynum{opacity:.55;}
+.cal-cell.is-today{border-color:#087F5B;box-shadow:inset 0 0 0 1px #087F5B;}
+.cal-cell.is-today .cal-daynum{color:#087F5B;font-weight:700;}
+.cal-cell.is-selected{background:#E6F4EF;border-color:#087F5B;box-shadow:inset 0 0 0 1px #087F5B;}
+.cal-cell.is-selected .cal-daynum{color:#064E3B;font-weight:700;}
+.cal-daynum{font-size:13px;line-height:1.1;font-weight:500;}
+.cal-count{margin-top:3px;min-width:18px;height:18px;padding:0 5px;border-radius:10px;background:#087F5B;color:#fff;font-size:10px;font-weight:600;line-height:18px;text-align:center;}
+.cal-cell.is-outside .cal-count{display:none;}
+.cal-selected-day{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+.cal-selected-heading{margin:0 0 8px;font-size:13px;color:#064E3B;font-family:'Sora',Arial,sans-serif;}
+.cal-appt-list li{align-items:center;}
+.cal-empty{font-size:13px;}
 .report-filter{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
 .report-filter label{font-weight:600;font-size:12.5px;}
 .report-filter input{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font:inherit;}
@@ -143,4 +169,15 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator{
 .simple-list{list-style:none;padding:0;margin:0;}
 .simple-list li{padding:9px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;}
 .simple-list li:last-child{border-bottom:0;}
-@media(max-width:600px){.chart-row{grid-template-columns:82px minmax(35px,1fr) 26px;gap:7px}.monthly-chart{grid-template-columns:repeat(5,minmax(18px,1fr))}}
+@media(max-width:600px){
+  .chart-row{grid-template-columns:82px minmax(35px,1fr) 26px;gap:7px}
+  .appt-calendar{padding:8px;}
+  .appt-calendar-grid{gap:2px;}
+  .cal-weekday{font-size:10px;padding:5px 1px;}
+  .cal-cell{min-height:40px;padding:3px 1px;border-radius:6px;}
+  .cal-daynum{font-size:12px;}
+  .cal-count{min-width:16px;height:16px;line-height:16px;font-size:9px;padding:0 4px;}
+  .cal-month-label{font-size:14px;min-width:0;}
+  .appt-calendar-nav{gap:6px;}
+  .cal-today-btn{margin-left:0;}
+}

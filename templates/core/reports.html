@@ -67,15 +67,53 @@
     {% endfor %}
   </div>
   <div class="card tab" data-tab="MONTHLY APPOINTMENTS">
-    <h3 class="section">Appointments by day · {{ selected_date|date:"F Y" }}</h3>
-    <div class="monthly-chart">
-      {% for row in monthly_appointment_chart %}
-      <div class="monthly-bar" title="{{ row.label|date:'d M' }}: {{ row.total }} appointments">
-        <span style="height:{{ row.width }}%;"></span><small>{{ row.label|date:"d" }}</small>
+    <h3 class="section">Appointments by day · {{ monthly_calendar.month_label }}</h3>
+    <div class="appt-calendar" aria-label="Appointments calendar for {{ monthly_calendar.month_label }}">
+      <div class="appt-calendar-nav">
+        <a class="btn ghost small cal-nav-btn" href="?date={{ monthly_calendar.prev_date|date:'Y-m-d' }}" aria-label="Previous month">&#10094;</a>
+        <div class="cal-month-label">{{ monthly_calendar.month_label }}</div>
+        <a class="btn ghost small cal-nav-btn" href="?date={{ monthly_calendar.next_date|date:'Y-m-d' }}" aria-label="Next month">&#10095;</a>
+        <a class="btn accent small cal-today-btn" href="?date={{ monthly_calendar.today_date|date:'Y-m-d' }}">Today</a>
       </div>
-      {% empty %}
-      <p style="color:var(--muted);">No monthly appointment data.</p>
-      {% endfor %}
+      <div class="appt-calendar-grid cal-weekdays" role="row">
+        {% for wd in monthly_calendar.weekdays %}
+        <div class="cal-weekday" role="columnheader">{{ wd }}</div>
+        {% endfor %}
+      </div>
+      <div class="appt-calendar-grid cal-days">
+        {% for week in monthly_calendar.weeks %}
+          {% for cell in week %}
+          <a href="?date={{ cell.date|date:'Y-m-d' }}"
+             class="cal-cell{% if not cell.in_month %} is-outside{% endif %}{% if cell.is_today %} is-today{% endif %}{% if cell.is_selected %} is-selected{% endif %}{% if cell.count %} has-appts{% endif %}"
+             aria-label="{{ cell.date|date:'j F Y' }}{% if cell.count %}, {{ cell.count }} appointment{{ cell.count|pluralize }}{% else %}, no appointments{% endif %}{% if cell.is_selected %}, selected{% endif %}{% if cell.is_today %}, today{% endif %}">
+            <span class="cal-daynum">{{ cell.day }}</span>
+            {% if cell.in_month and cell.count %}
+            <span class="cal-count" title="{{ cell.count }} appointment{{ cell.count|pluralize }}">{{ cell.count }}</span>
+            {% endif %}
+          </a>
+          {% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="cal-selected-day">
+      <h4 class="cal-selected-heading">Appointments on {{ selected_date|date:"l, j F Y" }}</h4>
+      {% if selected_day_appointments %}
+      <ul class="simple-list cal-appt-list">
+        {% for appt in selected_day_appointments %}
+        <li>
+          <span>
+            <b class="mono">{{ appt.scheduled_at|date:"H:i" }}</b>
+            — {{ appt.patient.full_name }}
+            {% if appt.doctor %}<span style="color:var(--muted);">· {{ appt.doctor.get_full_name|default:appt.doctor.username }}</span>{% endif %}
+          </span>
+          <span class="pill {{ appt.normalized_status|lower }}">{{ appt.get_status_display }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="cal-empty" style="color:var(--muted);margin:8px 0 0;">No appointments scheduled for this date.</p>
+      {% endif %}
     </div>
   </div>
 </div>
