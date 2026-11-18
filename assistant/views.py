@@ -11,8 +11,16 @@ from django.views.decorators.http import require_GET, require_POST
 
 from accounts.models import User
 
+from .faq import (
+    CLINICAL_REFUSAL as FAQ_CLINICAL_REFUSAL,
+    UNKNOWN_RESPONSE,
+    WELCOME_MESSAGE,
+    get_faq_response,
+    get_suggested_questions,
+    is_clinical_question as faq_is_clinical,
+)
 from .operational import build_operational_summary
-from .providers.ollama import ProviderUnavailable, chat
+from .providers.ollama import ProviderUnavailable, chat, is_available
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +45,12 @@ PII_PATTERN = re.compile(
 )
 CLINICAL_PATTERN = re.compile(
     r"\b(diagnos(?:e|is|ing)|treat(?:ment)?|prescrib(?:e|ing|tion)|medicat(?:ion|e)|"
-    r"dosage|symptom(?:s)?|disease|illness|pain|interpret(?:ation)?\s+(?:my\s+)?"
+    r"dosage|symptom(?:s)?|disease|illness|interpret(?:ation)?\s+(?:my\s+)?"
     r"(?:lab|laboratory|test)\s+results?|reference range)\b",
     re.IGNORECASE,
 )
-CLINICAL_REFUSAL = (
+# Keep legacy refusal text for live-model safety replacement (tests/behavior)
+LIVE_CLINICAL_REFUSAL = (
     "CareLink's AI assistant is for administrative support only. "
     "It cannot provide diagnoses, interpret test results, or recommend treatment. "
     "Please consult a qualified healthcare professional."
@@ -75,12 +84,39 @@ def _json_error(message, status):
     return JsonResponse({"error": message}, status=status)
 
 
+def _is_clinical(text):
+    return CLINICAL_PATTERN.search(text or "") is not None or faq_is_clinical(text or "")
+
+
+def _faq_reply(user, prompt, summary):
+    if _is_clinical(prompt):
+        return FAQ_CLINICAL_REFUSAL
+    answer = get_faq_response(user, prompt, summary=summary)
+    if answer:
+        return answer
+    return UNKNOWN_RESPONSE
+
+
 @login_required
 @require_GET
 def chat_page(request):
     if request.user.role not in ALLOWED_ROLES:
         return _json_error("You are not authorised to use the assistant.", 403)
-    return render(request, "assistant/chat.html")
+    ollama_available = False
+    try:
+        ollama_available = is_available(timeout=0.75)
+    except Exception:
+        ollama_available = False
+    suggested = get_suggested_questions(request.user)
+    return render(
+        request,
+        "assistant/chat.html",
+        {
+            "assistant_mode": "live" if ollama_available else "offline",
+            "welcome_message": WELCOME_MESSAGE,
+            "suggested_questions": suggested,
+        },
+    )
 
 
 @login_required
@@ -112,13 +148,11 @@ def chat_message(request):
             "The assistant does not process identifiable patient information.",
             400,
         )
-    if CLINICAL_PATTERN.search(prompt):
-        return JsonResponse({"reply": CLINICAL_REFUSAL})
 
     history = payload.get("history", [])
     if not isinstance(history, list) or len(history) > MAX_HISTORY_MESSAGES:
         return _json_error("Conversation context is invalid. Start a new conversation and try again.", 400)
-    messages = [{"role": "system", "content": SYSTEM_GUIDANCE}]
+    validated_history = []
     total_history_length = 0
     for item in history:
         if (
@@ -136,16 +170,17 @@ def chat_message(request):
                 "Conversation context contains identifying information. Start a new conversation without it.",
                 400,
             )
-        if CLINICAL_PATTERN.search(content):
-            return JsonResponse({"reply": CLINICAL_REFUSAL})
-        messages.append({"role": item["role"], "content": content})
+        validated_history.append({"role": item["role"], "content": content})
 
     try:
         summary = build_operational_summary(request.user)
     except ValueError:
         return _json_error("You are not authorised to use the assistant.", 403)
-    messages[0]["content"] += "\n\nCurrent role-scoped operational summary (JSON):\n" + json.dumps(summary)
-    messages.append({"role": "user", "content": prompt})
+
+    # Clinical safety: never provide medical advice/diagnosis/interpretation/treatment (offline or live)
+    if _is_clinical(prompt) or any(_is_clinical(h.get("content", "")) for h in validated_history):
+        # Return legacy refusal text for consistency/safety (and existing expectations)
+        return JsonResponse({"reply": LIVE_CLINICAL_REFUSAL, "mode": "offline"})
 
     cache_key = f"carelink_ai_rate_{request.user.pk}"
     if not cache.add(cache_key, 1, timeout=RATE_WINDOW_SECONDS):
@@ -157,14 +192,18 @@ def chat_message(request):
         if request_count > RATE_LIMIT:
             return _json_error("Please wait a minute before sending more messages.", 429)
 
+    # 1) If Ollama available, use existing Ollama integration. 2) If unavailable, auto-fallback to FAQ.
+    # (Preserve Ollama integration and allow tests/callers to patch assistant.views.chat)
     try:
+        messages = [{"role": "system", "content": SYSTEM_GUIDANCE}]
+        messages[0]["content"] += "\n\nCurrent role-scoped operational summary (JSON):\n" + json.dumps(summary)
+        messages.extend(validated_history)
+        messages.append({"role": "user", "content": prompt})
         reply = chat(messages)
+        if CLINICAL_PATTERN.search(reply):
+            reply = LIVE_CLINICAL_REFUSAL
+        return JsonResponse({"reply": reply, "mode": "live"})
     except ProviderUnavailable:
-        logger.warning("Local AI provider unavailable for user id=%s", request.user.pk)
-        return _json_error(
-            "The local AI service is unavailable. Please check that Ollama is running with the configured model.",
-            503,
-        )
-    if CLINICAL_PATTERN.search(reply):
-        reply = CLINICAL_REFUSAL
-    return JsonResponse({"reply": reply})
+        logger.info("Ollama unavailable for user id=%s; using offline FAQ assistant.", request.user.pk)
+        reply = _faq_reply(request.user, prompt, summary)
+        return JsonResponse({"reply": reply, "mode": "offline"})

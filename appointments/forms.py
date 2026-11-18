@@ -7,7 +7,10 @@ from .models import Appointment, QueueEntry
 
 
 class AppointmentForm(forms.ModelForm):
-    cancel_reason = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 2, "placeholder": "Reason for cancellation"}))
+    cancel_reason = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 2, "placeholder": "Reason for cancellation"}),
+    )
 
     class Meta:
         model = Appointment
@@ -17,6 +20,18 @@ class AppointmentForm(forms.ModelForm):
             "reason": forms.TextInput(attrs={"placeholder": "e.g. Follow-up consultation"}),
             "notes": forms.Textarea(attrs={"rows": 2}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["doctor"].queryset = User.objects.filter(
+            role=User.Role.DOCTOR, is_active=True, is_approved=True
+        ).order_by("last_name", "first_name", "username")
+        self.fields["patient"].queryset = Patient.objects.all().order_by("full_name")
+        self.fields["status"].initial = Appointment.Status.SCHEDULED
+        self.fields["status"].choices = [
+            (Appointment.Status.SCHEDULED, "Scheduled"),
+            (Appointment.Status.CONFIRMED, "Confirmed"),
+        ]
 
     def clean_scheduled_at(self):
         scheduled_at = self.cleaned_data.get("scheduled_at")

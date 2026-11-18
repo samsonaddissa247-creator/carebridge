@@ -2,14 +2,21 @@
 {% block content %}
 <div class="topbar"><div><h1>Book appointment</h1></div></div>
 <div class="card tab" data-tab="NEW APPOINTMENT" style="max-width:640px;">
+  {% if messages %}
+  <ul class="messages">
+    {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
+  </ul>
+  {% endif %}
   <form method="post">
     {% csrf_token %}
+    {{ form.non_field_errors }}
+    {{ form.status.as_hidden }}
+    {{ form.status.errors }}
     <div class="field"><label>Patient</label>{{ form.patient }}{{ form.patient.errors }}</div>
     <div class="field"><label>Doctor</label>{{ form.doctor }}{{ form.doctor.errors }}</div>
     <div class="field"><label>Reason</label>{{ form.reason }}{{ form.reason.errors }}</div>
     <div class="field"><label>Date &amp; time</label>{{ form.scheduled_at }}{{ form.scheduled_at.errors }}</div>
     <div class="field"><label>Notes</label>{{ form.notes }}{{ form.notes.errors }}</div>
-    <div class="field"><label>Cancellation reason</label>{{ form.cancel_reason }}{{ form.cancel_reason.errors }}</div>
     <div class="actions">
       <button class="btn primary" type="submit">Book Appointment</button>
       <a class="btn ghost" href="{% url 'appointment_list' %}">Cancel</a>

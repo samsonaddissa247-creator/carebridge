@@ -39,6 +39,9 @@
   {% if allowed_transitions %}
   <div class="card tab" data-tab="UPDATE STATUS">
     <h3 class="section">Update progress</h3>
+    {% if lab_request.status == "REQUESTED" or lab_request.status == "COLLECTED" %}
+    <p style="color:var(--muted); margin-bottom:10px;">Update the request to <strong>Processing</strong> before entering laboratory results.</p>
+    {% endif %}
     <div class="actions">
       {% for status in allowed_transitions %}
       <form method="post" action="{% url 'lab_update_status' lab_request.pk %}">
@@ -56,6 +59,7 @@
     <h3 class="section">{% if lab_request.result %}Correct result{% else %}Enter result{% endif %}</h3>
     <form method="post" action="{% url 'lab_save_result' lab_request.pk %}">
       {% csrf_token %}
+      {{ result_form.non_field_errors }}
       <div class="form-grid">
         {% for field in result_form %}
         <div class="field {% if field.name == 'result_value' or field.name == 'result_notes' %}full{% endif %}">
@@ -67,6 +71,10 @@
       </div>
       <button class="btn primary" type="submit">Save result</button>
     </form>
+  </div>
+  {% elif lab_request.status == "REQUESTED" or lab_request.status == "COLLECTED" %}
+  <div class="card tab" data-tab="RESULT ENTRY">
+    <p style="color:var(--muted);">Laboratory results can be entered after the request is marked <strong>Processing</strong> (or corrected after completion).</p>
   </div>
   {% endif %}
 

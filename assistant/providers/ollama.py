@@ -10,7 +10,7 @@ class ProviderUnavailable(Exception):
     pass
 
 
-def chat(messages):
+def _endpoint_config():
     endpoint = settings.CARELINK_OLLAMA_URL
     try:
         parsed = urlparse(endpoint)
@@ -28,7 +28,27 @@ def chat(messages):
         or parsed.fragment
     ):
         raise ProviderUnavailable("The configured model endpoint must be a local Ollama service.")
+    return endpoint
 
+
+def is_available(timeout=1.5):
+    """Return True when the local Ollama service appears reachable."""
+    try:
+        endpoint = _endpoint_config()
+    except ProviderUnavailable:
+        return False
+    # Derive tags endpoint from configured chat endpoint
+    tags_url = endpoint.rsplit("/api/chat", 1)[0] + "/api/tags"
+    request = Request(tags_url, headers={"Accept": "application/json"}, method="GET")
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            return 200 <= getattr(response, "status", 200) < 500
+    except (HTTPError, URLError, TimeoutError, OSError, ValueError):
+        return False
+
+
+def chat(messages):
+    endpoint = _endpoint_config()
     payload = json.dumps(
         {
             "model": settings.CARELINK_AI_MODEL,

@@ -97,7 +97,14 @@ def create_request(request):
         audit(request=lab_request, actor=request.user, action="request_created")
         messages.success(request, "Laboratory test request created.")
         return redirect("lab_detail", pk=lab_request.pk)
-    return render(request, "laboratory/request_form.html", {"form": form})
+    return render(
+        request,
+        "laboratory/request_form.html",
+        {
+            "form": form,
+            "no_accessible_patients": not form.fields["patient"].queryset.exists(),
+        },
+    )
 
 
 @login_required
@@ -175,12 +182,17 @@ def save_result(request, pk):
     existing_result = getattr(lab_request, "result", None)
     form = LabResultForm(request.POST, instance=existing_result)
     if not form.is_valid():
+        transitions = {
+            LabRequest.Status.REQUESTED: [LabRequest.Status.COLLECTED, LabRequest.Status.CANCELLED],
+            LabRequest.Status.COLLECTED: [LabRequest.Status.PROCESSING, LabRequest.Status.CANCELLED],
+            LabRequest.Status.PROCESSING: [LabRequest.Status.COMPLETED, LabRequest.Status.CANCELLED],
+        }
         return render(
             request,
             "laboratory/detail.html",
             {
                 "lab_request": lab_request,
-                "allowed_transitions": [],
+                "allowed_transitions": transitions.get(lab_request.status, []),
                 "result_form": form,
                 "can_manage": True,
             },

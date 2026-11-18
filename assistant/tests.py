@@ -94,7 +94,9 @@ class AssistantTests(TestCase):
         response = self.client.get(reverse("assistant_chat"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "AI responses may contain errors")
-        self.assertContains(response, "New conversation")
+        self.assertContains(response, "Clear conversation")
+        self.assertContains(response, "Offline Mode")
+        self.assertContains(response, "Hello! I&#x27;m CareLink Assistant")
 
     def test_message_endpoint_requires_login(self):
         response = self.client.post(
@@ -167,8 +169,12 @@ class AssistantTests(TestCase):
     @patch("assistant.views.chat", side_effect=ProviderUnavailable("local model offline"))
     def test_provider_failure_returns_friendly_service_error(self, _mock_chat):
         response = self.send_message(self.doctor)
-        self.assertEqual(response.status_code, 503)
-        self.assertIn("Ollama is running", response.json()["error"])
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data.get("mode"), "offline")
+        self.assertIn("reply", data)
+        self.assertNotIn("Ollama", data["reply"])
+        self.assertNotIn("ollama", data["reply"])
 
     @patch("assistant.views.chat")
     def test_summary_is_accurate_role_scoped_and_contains_no_patient_identity(self, mock_chat):
