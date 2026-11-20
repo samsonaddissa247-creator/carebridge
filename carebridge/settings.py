@@ -24,13 +24,10 @@ if DEBUG:
 else:
     if _secret_key:
         SECRET_KEY = _secret_key
-    elif IS_VERCEL:
-        # Fallback to allow boot when env var is not configured; sessions/tokens
-        # may be unstable across serverless instances. Set SECRET_KEY in Vercel.
-        SECRET_KEY = "django-insecure-vercel-" + os.environ.get("VERCEL_DEPLOYMENT_ID", "set-secret-key-in-vercel-env")
     else:
         raise RuntimeError(
-            "SECRET_KEY must be set in production. Add it to your environment before starting Django."
+            "SECRET_KEY must be set in production. "
+            "Set it in your environment before starting Django."
         )
 
 _default_hosts = "localhost,127.0.0.1,[::1]"
@@ -84,6 +81,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -112,30 +110,30 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "carebridge.wsgi.application"
 
-DATABASE_PATH = BASE_DIR / "db.sqlite3"
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": DATABASE_PATH,
+import dj_database_url
+
+# Database configuration
+# Local development uses SQLite; production on Vercel uses PostgreSQL via DATABASE_URL
+if os.environ.get("DATABASE_URL"):
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=os.environ["DATABASE_URL"],
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=True,  # Neon requires SSL
+        )
     }
-}
-
-DATABASE_URL = (
-    os.environ.get("DATABASE_URL")
-    or os.environ.get("POSTGRES_URL")
-    or os.environ.get("POSTGRES_PRISMA_URL")
-)
-
-if DATABASE_URL:
-    import dj_database_url
-
-    DATABASES["default"] = dj_database_url.parse(DATABASE_URL, conn_max_age=600)
 elif IS_VERCEL:
-    # Vercel filesystem is ephemeral; /tmp is writable for boot but not persistent.
-    # Configure DATABASE_URL (PostgreSQL) in Vercel for a working deployment.
-    DATABASES["default"] = {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": "/tmp/carelink.sqlite3",
+    raise RuntimeError(
+        "DATABASE_URL must be configured for production deployment. "
+        "Set it in Vercel Environment Variables."
+    )
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
 
 if IS_VERCEL:
@@ -169,8 +167,18 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_ROOT = BASE_DIR / "private_media"
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

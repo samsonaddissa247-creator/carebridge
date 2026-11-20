@@ -6,6 +6,9 @@ __pycache__/
 *.sqlite3
 .venv/
 venv/
+.venv-carelink/
+*.swp
+*.swo
 staticfiles/
 private_media/
 .pytest_cache/
